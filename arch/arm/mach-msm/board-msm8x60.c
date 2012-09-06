@@ -104,7 +104,7 @@
 #include "pm-boot.h"
 #include "board-storage-common-a.h"
 
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <mach/ion.h>
 
 #define MSM_SHARED_RAM_PHYS 0x40000000
