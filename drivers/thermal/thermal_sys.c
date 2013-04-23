@@ -1063,7 +1063,7 @@ void thermal_zone_device_update(struct thermal_zone_device *tz)
 					printk(KERN_EMERG
 					       "Critical temperature reached (%ld C), shutting down.\n",
 					       temp/1000);
-					orderly_poweroff(true);
+				// pz1949	orderly_poweroff(true);
 				}
 			}
 			break;
@@ -1091,7 +1091,7 @@ void thermal_zone_device_update(struct thermal_zone_device *tz)
 				printk(KERN_EMERG
 				"Critical temperature reached (%ld C), \
 					shutting down.\n", temp/1000);
-				orderly_poweroff(true);
+				// pz1949	orderly_poweroff(true);
 				}
 			}
 			break;

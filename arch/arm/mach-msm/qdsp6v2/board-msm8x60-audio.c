@@ -11,6 +11,10 @@
  *
  */
 
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+#include "board-msm8x60-audio_presto.c"
+#else /*CONFIG_MACH_MSM8X60_PRESTO */
+
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
@@ -358,14 +362,19 @@ static void msm_snddev_poweramp_off(void)
 	}
 }
 
+#ifndef CONFIG_SKY_SND_CTRL
 /* Regulator 8058_l10 supplies regulator 8058_ncp. */
 static struct regulator *snddev_reg_ncp;
 static struct regulator *snddev_reg_l10;
+#endif /* CONFIG_SKY_SND_CTRL */
 
 static atomic_t preg_ref_cnt;
 
 static int msm_snddev_voltage_on(void)
 {
+#ifdef CONFIG_SKY_SND_CTRL
+	return 0;
+#else /* CONFIG_SKY_SND_CTRL */
 	int rc;
 	pr_debug("%s\n", __func__);
 
@@ -414,10 +423,12 @@ regulator_fail:
 	regulator_put(snddev_reg_ncp);
 	snddev_reg_ncp = NULL;
 	return rc;
+#endif /* CONFIG_SKY_SND_CTRL */        
 }
 
 static void msm_snddev_voltage_off(void)
 {
+#ifndef CONFIG_SKY_SND_CTRL
 	int rc;
 	pr_debug("%s\n", __func__);
 
@@ -446,6 +457,7 @@ done:
 	regulator_put(snddev_reg_l10);
 
 	snddev_reg_l10 = NULL;
+#endif /* CONFIG_SKY_SND_CTRL */        
 }
 
 static int msm_snddev_enable_amic_power(void)
@@ -478,8 +490,13 @@ static int msm_snddev_enable_amic_power(void)
 		gpio_direction_output(SNDDEV_GPIO_MIC1_ANCL_SEL, 0);
 
 	} else {
+#ifdef CONFIG_SKY_SND_CTRL
+		ret = pm8058_micbias_enable(OTHC_MICBIAS_0,
+				OTHC_SIGNAL_ALWAYS_ON);
+#else /* CONFIG_SKY_SND_CTRL */
 		ret = pm8058_micbias_enable(OTHC_MICBIAS_2,
 				OTHC_SIGNAL_ALWAYS_ON);
+#endif /* CONFIG_SKY_SND_CTRL */
 		if (ret)
 			pr_err("%s: Enabling amic power failed\n", __func__);
 	}
@@ -497,7 +514,11 @@ static void msm_snddev_disable_amic_power(void)
 		gpio_free(SNDDEV_GPIO_MIC1_ANCL_SEL);
 		gpio_free(SNDDEV_GPIO_MIC2_ANCR_SEL);
 	} else
+#ifdef CONFIG_SKY_SND_CTRL
+		ret = pm8058_micbias_enable(OTHC_MICBIAS_0, OTHC_SIGNAL_OFF);
+#else /* CONFIG_SKY_SND_CTRL */
 		ret = pm8058_micbias_enable(OTHC_MICBIAS_2, OTHC_SIGNAL_OFF);
+#endif /* CONFIG_SKY_SND_CTRL */
 
 	if (ret)
 		pr_err("%s: Disabling amic power failed\n", __func__);
@@ -660,6 +681,10 @@ static struct snddev_icodec_data snddev_iearpiece_data = {
 	.profile = &iearpiece_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
+#ifdef CONFIG_MACH_MSM8X60_PRESTO  // jmlee 	
+	.pamp_on = msm_snddev_enable_iearpiece_on,
+	.pamp_off = msm_snddev_disable_iearpeace_off,
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 };
 
 static struct platform_device msm_iearpiece_device = {
@@ -719,7 +744,11 @@ static struct platform_device msm_fluid_ispkr_mic_device = {
 
 
 static struct adie_codec_action_unit headset_ab_cpls_48KHz_osr256_actions[] =
+#ifdef CONFIG_SKY_SND_CTRL /* 20110429-jhpark: RX HPH CLASS AB LEGACY */
+	HPH_PRI_AB_LEG_STEREO; 
+#else /* CONFIG_SKY_SND_CTRL */
 	HEADSET_AB_CPLS_48000_OSR_256;
+#endif /* CONFIG_SKY_SND_CTRL */
 
 static struct adie_codec_hwsetting_entry headset_ab_cpls_settings[] = {
 	{
@@ -811,7 +840,11 @@ static struct snddev_icodec_data snddev_ispkr_stereo_data = {
 	.name = "speaker_stereo_rx",
 	.copp_id = 0,
 	.profile = &ispkr_stereo_profile,
+#ifdef CONFIG_SKY_SND_CTRL /* 20110521-jhpark:If you use 2, it is stereo so please use 1 then L+R will be mixed. */
+	.channel_mode = 1,
+#else /* CONFIG_SKY_SND_CTRL */
 	.channel_mode = 2,
+#endif /* CONFIG_SKY_SND_CTRL */
 	.default_sample_rate = 48000,
 	.pamp_on = msm_snddev_poweramp_on,
 	.pamp_off = msm_snddev_poweramp_off,
@@ -843,12 +876,22 @@ static struct adie_codec_dev_profile idmic_mono_profile = {
 static struct snddev_icodec_data snddev_ispkr_mic_data = {
 	.capability = (SNDDEV_CAP_TX | SNDDEV_CAP_VOICE),
 	.name = "speaker_mono_tx",
+#ifdef CONFIG_SKY_SND_CTRL
+	.copp_id = 1,
+	.profile = &imic_profile,
+#else /* CONFIG_SKY_SND_CTRL */
 	.copp_id = PRIMARY_I2S_TX,
 	.profile = &idmic_mono_profile,
+#endif /* CONFIG_SKY_SND_CTRL */
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
+#ifdef CONFIG_SKY_SND_CTRL	
+	.pamp_on = msm_snddev_enable_amic_power,
+	.pamp_off = msm_snddev_disable_amic_power,
+#else /* CONFIG_SKY_SND_CTRL */
 	.pamp_on = msm_snddev_enable_dmic_power,
 	.pamp_off = msm_snddev_disable_dmic_power,
+#endif /* CONFIG_SKY_SND_CTRL */
 };
 
 static struct platform_device msm_ispkr_mic_device = {
@@ -2716,3 +2759,5 @@ void __init msm_snddev_init(void)
 		(void *) "msm_hsed_config", &snddev_hsed_config_debug_fops);
 #endif
 }
+
+#endif /*CONFIG_MACH_MSM8X60_PRESTO */

@@ -192,6 +192,11 @@ source "drivers/input/serio/Kconfig"
 
 source "drivers/input/gameport/Kconfig"
 
+source "drivers/input/pantech_earjack_int/Kconfig"
+
+# Sensors - added by p12781
+source "drivers/input/sensor/Kconfig"
+
 endmenu
 
 endmenu

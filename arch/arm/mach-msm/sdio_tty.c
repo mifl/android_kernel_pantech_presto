@@ -294,10 +294,10 @@ static int sdio_tty_write_callback(struct tty_struct *tty,
 	}
 	ret = sdio_write(sdio_tty_drv->ch, buf, len);
 	if (ret) {
-		pr_err(SDIO_TTY_MODULE_NAME ": %s: sdio_write failed for "
-			"dev %s, ret=%d\n", __func__,
-			sdio_tty_drv->tty_dev_name, ret);
-		return 0;
+//		pr_err(SDIO_TTY_MODULE_NAME ": %s: sdio_write failed for "
+//			"dev %s, ret=%d\n", __func__,
+//			sdio_tty_drv->tty_dev_name, ret);
+		return ret; //modified by JJinBBong, 20110920
 	}
 
 	sdio_tty_drv->total_tx += len;

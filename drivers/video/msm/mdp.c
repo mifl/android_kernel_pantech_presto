@@ -1418,6 +1418,9 @@ void mdp_pipe_kickoff(uint32 term, struct msm_fb_data_type *mfd)
 		/* DMA update timestamp */
 		mdp_dma2_last_update_time = ktime_get_real();
 		/* let's turn on DMA2 block */
+#if 0
+		mdp_pipe_ctrl(MDP_DMA2_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+#endif
 #ifdef CONFIG_FB_MSM_MDP22
 		outpdw(MDP_CMD_DEBUG_ACCESS_BASE + 0x0044, 0x0);/* start DMA */
 #else
@@ -2986,5 +2989,38 @@ static int __init mdp_driver_init(void)
 	return 0;
 
 }
+
+#if defined(CONFIG_PANTECH_ERR_CRASH_LOGGING)
+extern struct fb_info *registered_fb[FB_MAX]; 
+
+void mdp4_dummy_overlay(struct msm_fb_data_type *mfd)
+{
+}
+
+void force_mdp_on(void)
+{    
+    struct fb_info *info; 
+    struct msm_fb_data_type *mfd; 
+	struct msm_fb_panel_data *pdata;
+
+    info = registered_fb[0];
+    mfd = (struct msm_fb_data_type *)info->par;
+	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+
+    if (!mfd->panel_power_on) {
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+        mdp_lcdc_on(mfd->pdev);
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+        mdp4_dsi_video_on(mfd->pdev);
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+        if ((pdata) && (pdata->set_backlight)) {
+            mfd->bl_level = mfd->panel_info.bl_max;
+            pdata->set_backlight(mfd);
+        }
+    }
+    mfd->dma_fnc = mdp4_dummy_overlay;//NULL;
+}
+EXPORT_SYMBOL(force_mdp_on);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 module_init(mdp_driver_init);

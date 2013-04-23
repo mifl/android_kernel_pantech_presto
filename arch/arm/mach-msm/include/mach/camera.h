@@ -27,12 +27,33 @@
 #include <mach/msm_subsystem_map.h>
 #include <linux/ion.h>
 
+#ifdef CONFIG_PANTECH_CAMERA
+#define CONFIG_PANTECH_CAMERA_SUSPEND_LOCK
+#define F_PANTECH_CAMERA_LOG_PRINTK
+#endif /* CONFIG_PANTECH_CAMERA */
+
 #define CONFIG_MSM_CAMERA_DEBUG
 #ifdef CONFIG_MSM_CAMERA_DEBUG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 #else
 #define CDBG(fmt, args...) do { } while (0)
 #endif
+
+/* Please don't use this in sensor drivers. Use this only in source codes 
+ * not surrounded by PANTECH_CAMERA features. */
+#ifdef CONFIG_PANTECH_CAMERA_DEBUG
+#define PCDBG(fmt, args...) pr_info(fmt, ##args)
+#else /* CONFIG_PANTECH_CAMERA_DEBUG */
+#define PCDBG(fmt, args...) do { } while(0)
+#endif /* CONFIG_PANTECH_CAMERA_DEBUG */
+
+#ifdef F_PANTECH_CAMERA_LOG_PRINTK
+#define SKYCDBG(fmt, args...) printk(KERN_INFO "SKYCDBG: " fmt, ##args)
+#define SKYCERR(fmt, args...) printk(KERN_ERR "SKYCERR: " fmt, ##args)
+#else /* F_PANTECH_CAMERA_LOG_PRINTK */
+#define SKYCDBG(fmt, args...) do{}while(0)
+#define SKYCERR(fmt, args...) do{}while(0)
+#endif /* F_PANTECH_CAMERA_LOG_PRINTK */
 
 #define PAD_TO_2K(a, b) ((!b) ? a : (((a)+2047) & ~2047))
 
@@ -335,6 +356,9 @@ struct msm_sensor_ctrl {
 	int (*s_init)(const struct msm_camera_sensor_info *);
 	int (*s_release)(void);
 	int (*s_config)(void __user *);
+#ifdef CONFIG_PANTECH_CAMERA//IRQ
+	uint32_t (*s_readirq)(void);
+#endif /* CONFIG_PANTECH_CAMERA */
 	enum msm_camera_type s_camera_type;
 	uint32_t s_mount_angle;
 	enum msm_st_frame_packing s_video_packing;
@@ -416,6 +440,9 @@ struct msm_sync {
 	struct msm_strobe_flash_ctrl sfctrl;
 	struct msm_actuator_ctrl actctrl;
 	struct wake_lock wake_lock;
+#ifdef CONFIG_PANTECH_CAMERA_SUSPEND_LOCK
+	struct wake_lock suspend_lock;
+#endif /* CONFIG_PANTECH_CAMERA_SUSPEND_LOCK */
 	struct platform_device *pdev;
 	int16_t ignore_qcmd_type;
 	uint8_t ignore_qcmd;

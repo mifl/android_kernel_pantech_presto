@@ -2062,6 +2062,11 @@ static int msm_hs_runtime_resume(struct device *dev)
 	struct platform_device *pdev = container_of(dev, struct
 						    platform_device, dev);
 	struct msm_hs_port *msm_uport = &q_uart_port[pdev->id];
+
+#if 1
+	if(pdev->id == 0) return 0;  // BT uart. p12912-NOL
+#endif
+	
 	msm_hs_request_clock_on(&msm_uport->uport);
 	return 0;
 }
@@ -2071,6 +2076,11 @@ static int msm_hs_runtime_suspend(struct device *dev)
 	struct platform_device *pdev = container_of(dev, struct
 						    platform_device, dev);
 	struct msm_hs_port *msm_uport = &q_uart_port[pdev->id];
+
+#if 1
+	if(pdev->id == 0) return 0;  // BT uart. p12912-NOL
+#endif
+
 	msm_hs_request_clock_off(&msm_uport->uport);
 	return 0;
 }
@@ -2114,6 +2124,14 @@ static struct uart_ops msm_hs_ops = {
 	.release_port = msm_hs_release_port,
 	.request_port = msm_hs_request_port,
 };
+
+#if 1 //BRCM_H4_LPM_SUPPORT
+struct uart_port* msm_hs_get_bt_uport(unsigned int line)
+{
+	return &q_uart_port[line].uport;
+}
+EXPORT_SYMBOL(msm_hs_get_bt_uport);
+#endif
 
 module_init(msm_serial_hs_init);
 module_exit(msm_serial_hs_exit);

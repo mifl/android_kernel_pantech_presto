@@ -18,3 +18,8 @@ obj-y += aac_in.o qcelp_in.o evrc_in.o amrnb_in.o audio_utils.o
 obj-y += audio_wma.o audio_wmapro.o audio_aac.o audio_multi_aac.o audio_utils_aio.o
 obj-$(CONFIG_MSM_ULTRASOUND) += ultrasound/
 obj-y += audio_mp3.o audio_amrnb.o audio_amrwb.o audio_evrc.o audio_qcelp.o amrwb_in.o
+ifeq ($(CONFIG_PANTECH_AUDIO_PRESTO_FAB2200), y)
+obj-y += snd_presto_sub_fab2200.o
+obj-$(CONFIG_PANTECH_AUDIO_SUBCHIP_CAL_TOOL) += sky_snd_presto_extampctrl.o
+endif
+obj-$(CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020) += snd_presto_audience_a2020.o

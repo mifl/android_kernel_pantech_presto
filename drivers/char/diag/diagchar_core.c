@@ -57,7 +57,11 @@ static unsigned int poolsize_hdlc = 8;  /*Number of items in the mempool */
 static unsigned int itemsize_write_struct = 20; /*Size of item in the mempool */
 static unsigned int poolsize_write_struct = 8; /* Num of items in the mempool */
 /* This is the max number of user-space clients supported at initialization*/
+#ifdef CONFIG_PANTECH_SKY
+static unsigned int max_clients = 17;
+#else /* CONFIG_PANTECH_SKY */
 static unsigned int max_clients = 15;
+#endif /* CONFIG_PANTECH_SKY */
 static unsigned int threshold_client_limit = 30;
 /* This is the maximum number of pkt registrations supported at initialization*/
 unsigned int diag_max_reg = 600;
@@ -1074,7 +1078,11 @@ static int diagchar_cleanup(void)
 #ifdef CONFIG_DIAG_SDIO_PIPE
 void diag_sdio_fn(int type)
 {
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()) {
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+		|| machine_is_msm8x60_presto()
+#endif
+	) {
 		if (type == INIT)
 			diagfwd_sdio_init();
 		else if (type == EXIT)

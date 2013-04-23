@@ -92,9 +92,11 @@ static struct clk *camio_vpe_pclk;
 static struct regulator *fs_vfe;
 static struct regulator *fs_ijpeg;
 static struct regulator *fs_vpe;
+#ifndef CONFIG_PANTECH_CAMERA_HW
 static struct regulator *ldo15;
 static struct regulator *lvs0;
 static struct regulator *ldo25;
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 
 static struct msm_camera_io_ext camio_ext;
 static struct msm_camera_io_clk camio_clk;
@@ -182,6 +184,7 @@ void msm_io_memcpy(void __iomem *dest_addr, void __iomem *src_addr, u32 len)
 
 static void msm_camera_vreg_enable(void)
 {
+#ifndef CONFIG_PANTECH_CAMERA_HW	
 	ldo15 = regulator_get(NULL, "8058_l15");
 	if (IS_ERR(ldo15)) {
 		pr_err("%s: VREG LDO15 get failed\n", __func__);
@@ -222,6 +225,7 @@ static void msm_camera_vreg_enable(void)
 		pr_err("%s: VREG LDO25 enable failed\n", __func__);
 		goto ldo25_put;
 	}
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 
 	fs_vfe = regulator_get(NULL, "fs_vfe");
 	if (IS_ERR(fs_vfe)) {
@@ -234,6 +238,7 @@ static void msm_camera_vreg_enable(void)
 	}
 	return;
 
+#ifndef CONFIG_PANTECH_CAMERA_HW
 ldo25_disable:
 	regulator_disable(ldo25);
 ldo25_put:
@@ -246,10 +251,12 @@ ldo15_disable:
 	regulator_disable(ldo15);
 ldo15_put:
 	regulator_put(ldo15);
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 }
 
 static void msm_camera_vreg_disable(void)
 {
+#ifndef CONFIG_PANTECH_CAMERA_HW	
 	if (ldo15) {
 		regulator_disable(ldo15);
 		regulator_put(ldo15);
@@ -264,6 +271,7 @@ static void msm_camera_vreg_disable(void)
 		regulator_disable(ldo25);
 		regulator_put(ldo25);
 	}
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 
 	if (fs_vfe) {
 		regulator_disable(fs_vfe);
@@ -633,8 +641,10 @@ static void msm_camio_csi_disable(void)
 		CDBG("%s MIPI_PHY_D0_CONTROL2 val=0x%x\n", __func__, val);
 		msm_io_w(val, csibase + MIPI_PHY_D0_CONTROL2);
 		msm_io_w(val, csibase + MIPI_PHY_D1_CONTROL2);
+#if 0 //pz2428 : disable unused mipi line
 		msm_io_w(val, csibase + MIPI_PHY_D2_CONTROL2);
 		msm_io_w(val, csibase + MIPI_PHY_D3_CONTROL2);
+#endif /* pz2428 */
 		CDBG("%s MIPI_PHY_CL_CONTROL val=0x%x\n", __func__, val);
 		msm_io_w(val, csibase + MIPI_PHY_CL_CONTROL);
 		msleep(20);
@@ -730,7 +740,9 @@ int msm_camio_csi_config(struct msm_camera_csi_params *csi_params)
 {
 	int rc = 0;
 	uint32_t val = 0;
+#if 0 //pz2428 : disable unused mipi line
 	int i;
+#endif /* pz2428 */
 
 	CDBG("msm_camio_csi_config\n");
 	if (csibase != NULL) {
@@ -760,9 +772,13 @@ int msm_camio_csi_config(struct msm_camera_csi_params *csi_params)
 			(0x1 << MIPI_PHY_D0_CONTROL2_LP_REC_EN_SHFT) |
 			(0x1 << MIPI_PHY_D0_CONTROL2_ERR_SOT_HS_EN_SHFT);
 		CDBG("%s MIPI_PHY_D0_CONTROL2 val=0x%x\n", __func__, val);
+#if 0 //pz2428 : disable unused mipi line
 		for (i = 0; i < csi_params->lane_cnt; i++)
 			msm_io_w(val, csibase + MIPI_PHY_D0_CONTROL2 + i * 4);
-
+#else /* pz2428 */
+        	msm_io_w(val, csibase + MIPI_PHY_D0_CONTROL2);
+        	msm_io_w(val, csibase + MIPI_PHY_D1_CONTROL2);
+#endif /* pz2428 */
 		val = (0x0F << MIPI_PHY_CL_CONTROL_HS_TERM_IMP_SHFT) |
 			(0x1 << MIPI_PHY_CL_CONTROL_LP_REC_EN_SHFT);
 		CDBG("%s MIPI_PHY_CL_CONTROL val=0x%x\n", __func__, val);

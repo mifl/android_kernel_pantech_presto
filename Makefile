@@ -103,7 +103,7 @@ ifeq ("$(origin O)", "command line")
 endif
 
 ifeq ("$(origin W)", "command line")
-  export KBUILD_ENABLE_EXTRA_GCC_CHECKS := $(W)
+  export KBUILD_ENABLE_EXTRA_GCC_CHECKS := 1
 endif
 
 # That's our default target when none is given on the command line
@@ -330,7 +330,7 @@ include $(srctree)/scripts/Kbuild.include
 
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-REAL_CC		= $(CROSS_COMPILE)gcc
+CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
@@ -347,7 +347,7 @@ CHECK		= sparse
 
 # Use the wrapper for the compiler.  This wrapper scans for new
 # warnings and causes the build to stop upon encountering them.
-CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
+#CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 		  -Wbitwise -Wno-return-void $(CF)
@@ -373,6 +373,21 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks
+######################################################################
+# SKY_ANDROID_FLAGS
+######################################################################
+# Android SKY cust Feature
+# Add START. by sungwook on 2010-05-07
+#----------------------------------------------------------------------
+KBUILD_CFLAGS   += "-include" $(PWD)"/include/BOARD_REV.h"
+KBUILD_CFLAGS   += $(SKY_KERNEL_FLAGS)
+#----------------------------------------------------------------------
+#20110819 choiseulkee add for kernel user build
+ifeq ($(TARGET_BUILD_VARIANT),user)
+KBUILD_CFLAGS   += -DTARGET_BUILD_USER
+endif
+#----------------------------------------------------------------------
+
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__

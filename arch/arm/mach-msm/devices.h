@@ -119,6 +119,12 @@ extern struct platform_device msm_gsbi4_qup_i2c_device;
 extern struct platform_device msm_gsbi7_qup_i2c_device;
 extern struct platform_device msm_gsbi8_qup_i2c_device;
 extern struct platform_device msm_gsbi9_qup_i2c_device;
+#if defined(CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee 
+extern struct platform_device msm_gsbi10_qup_i2c_device;
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+#ifdef CONFIG_SKY_BATTERY_MAX17040 //p14682 kobj 110607 PS2 TEAM SHS : PORTING FUEL GAUGE
+extern struct platform_device msm_gsbi11_qup_i2c_device;
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 extern struct platform_device msm_gsbi12_qup_i2c_device;
 
 extern struct platform_device msm_slim_ctrl;

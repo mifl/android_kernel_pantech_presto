@@ -314,8 +314,19 @@ void emergency_restart(void)
 }
 EXPORT_SYMBOL_GPL(emergency_restart);
 
+#ifdef CONFIG_PANTECH //20110907 choiseulkee add for fast reboot, PRESTO, AT&T requirment
+int is_forced_reset = 0;
+#endif /* CONFIG_PANTECH */
+
 void kernel_restart_prepare(char *cmd)
 {
+	#ifdef CONFIG_PANTECH //20110907 choiseulkee add for fast reboot, PRESTO, AT&T requirment
+	if( (cmd != NULL) && (memcmp( cmd, "forced_reset", sizeof("forced_reset")-1 ) == 0) )
+	{
+		is_forced_reset = 1;
+	}
+	#endif /* CONFIG_PANTECH */
+
 	blocking_notifier_call_chain(&reboot_notifier_list, SYS_RESTART, cmd);
 	system_state = SYSTEM_RESTART;
 	usermodehelper_disable();
@@ -422,6 +433,10 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 	mutex_lock(&reboot_mutex);
 	switch (cmd) {
 	case LINUX_REBOOT_CMD_RESTART:
+#ifdef CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+	case LINUX_REBOOT_CMD_RMNT_RESTART:
+		emergency_remount_synchronous();
+#endif /* CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET */
 		kernel_restart(NULL);
 		break;
 
@@ -434,21 +449,35 @@ SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,
 		break;
 
 	case LINUX_REBOOT_CMD_HALT:
+#ifdef CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+	case LINUX_REBOOT_CMD_RMNT_HALT:
+		emergency_remount_synchronous();
+#endif /* CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET */
 		kernel_halt();
 		do_exit(0);
 		panic("cannot halt");
 
 	case LINUX_REBOOT_CMD_POWER_OFF:
+	case LINUX_REBOOT_CMD_RMNT_POWER_OFF:
+#ifdef CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+		emergency_remount_synchronous();
+#endif /* CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET */
 		kernel_power_off();
 		do_exit(0);
 		break;
 
 	case LINUX_REBOOT_CMD_RESTART2:
+#ifdef CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+	case LINUX_REBOOT_CMD_RMNT_RESTART2:
+#endif /* CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET */
 		if (strncpy_from_user(&buffer[0], arg, sizeof(buffer) - 1) < 0) {
 			ret = -EFAULT;
 			break;
 		}
 		buffer[sizeof(buffer) - 1] = '\0';
+#ifdef CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+		emergency_remount_synchronous();
+#endif /* CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET */
 
 		kernel_restart(buffer);
 		break;

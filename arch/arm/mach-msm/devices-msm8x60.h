@@ -23,6 +23,13 @@
 #define MSM_SSBI2_I2C_BUS_ID     7
 #define MSM_SSBI3_I2C_BUS_ID     8
 
+#ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
+#define MSM_TKI_I2C_BUS_ID 12
+#endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
+#if defined (CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee
+#define MSM_GSBI10_QUP_I2C_BUS_ID 21
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+
 #ifdef CONFIG_SND_SOC_MSM8660_APQ
 extern struct platform_device msm_pcm;
 extern struct platform_device msm_pcm_routing;
@@ -40,6 +47,10 @@ extern struct platform_device msm_voip;
 extern struct platform_device msm_lpa_pcm;
 extern struct platform_device msm_pcm_hostless;
 #endif
+
+#ifdef CONFIG_SKY_BATTERY_MAX17040   // p14682 kobj  110607 
+#define MSM_GSBI11_QUP_I2C_BUS_ID	16
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 
 #ifdef CONFIG_SPI_QUP
 extern struct platform_device msm_gsbi1_qup_spi_device;

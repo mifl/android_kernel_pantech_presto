@@ -67,6 +67,12 @@
 #define MTP_RESPONSE_OK             0x2001
 #define MTP_RESPONSE_DEVICE_BUSY    0x2019
 
+/*
+ * Windows Media Player media sync start/stop bug fix
+ * by Pantech Inc.(pooyi)
+ */
+#define FEATURE_ANDROID_PANTECH_MEDIAPLAYER_SYNC_BUG
+
 static const char mtp_shortname[] = "mtp_usb";
 
 struct mtp_dev {
@@ -486,6 +492,10 @@ requeue_req:
 	req = dev->rx_req[0];
 	req->length = count;
 	dev->rx_done = 0;
+	if (dev->state == STATE_OFFLINE) {
+		r = -ENODEV;
+		goto done;
+	}
 	ret = usb_ep_queue(dev->ep_out, req, GFP_KERNEL);
 	if (ret < 0) {
 		r = -EIO;
@@ -757,6 +767,10 @@ static void receive_file_work(struct work_struct *data)
 			read_req->length = (count > MTP_BULK_BUFFER_SIZE
 					? MTP_BULK_BUFFER_SIZE : count);
 			dev->rx_done = 0;
+			if (dev->state == STATE_OFFLINE) {
+				r = -ENODEV;
+				break;
+			}
 			ret = usb_ep_queue(dev->ep_out, read_req, GFP_KERNEL);
 			if (ret < 0) {
 				r = -EIO;
@@ -1157,6 +1171,13 @@ static int mtp_function_set_alt(struct usb_function *f,
 
 	/* readers may be blocked waiting for us to go online */
 	wake_up(&dev->read_wq);
+
+#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+	if(dev && dev->function.hs_descriptors == hs_ptp_descs)
+		usb_interface_enum_cb(PTP_TYPE_FLAG);
+	else
+	usb_interface_enum_cb(MTP_TYPE_FLAG);
+#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
 	return 0;
 }
 

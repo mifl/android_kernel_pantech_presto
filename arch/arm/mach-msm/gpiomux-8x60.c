@@ -22,6 +22,15 @@ static struct gpiomux_setting console_uart = {
 };
 
 /* The SPI configurations apply to GSBI1 and GSBI10 */
+
+#if (defined(CONFIG_MACH_MSM8X60_PRESTO)) //GSBI1 PROXIMETER SENSOR
+static struct gpiomux_setting gsbi1 = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+
 static struct gpiomux_setting spi_active = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
@@ -34,11 +43,13 @@ static struct gpiomux_setting spi_suspended_config = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#if (!defined(CONFIG_MACH_MSM8X60_PRESTO))
 static struct gpiomux_setting spi_suspended_cs_config = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 
 /* This I2C active configuration applies to GSBI3 and GSBI4 */
 static struct gpiomux_setting i2c_active = {
@@ -46,6 +57,14 @@ static struct gpiomux_setting i2c_active = {
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+
+#if 1//pz1946
+static struct gpiomux_setting i2c_active_gsbi3 = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+#endif /* pz1946 */
 
 static struct gpiomux_setting i2c_active_gsbi7 = {
 	.func = GPIOMUX_FUNC_1,
@@ -187,7 +206,12 @@ static struct gpiomux_setting sdcc2_clk_actv_cfg = {
 static struct gpiomux_setting sdcc2_suspend_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
+//20110813 choiseulkee chg,CASE #00579055 for sdio_al_wake_up WARNING & sdio write fail issue
+#ifdef CONFIG_PANTECH
 	.pull = GPIOMUX_PULL_UP,
+#else /* CONFIG_PANTECH */
+	.pull = GPIOMUX_PULL_UP,
+#endif /* CONFIG_PANTECH */
 };
 
 static struct gpiomux_setting sdcc5_dat_0_3_cmd_actv_cfg = {
@@ -205,7 +229,12 @@ static struct gpiomux_setting sdcc5_clk_actv_cfg = {
 static struct gpiomux_setting sdcc5_suspend_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
+//20110813 choiseulkee chg,CASE #00579055 for sdio_al_wake_up WARNING & sdio write fail issue
+#ifdef CONFIG_PANTECH
 	.pull = GPIOMUX_PULL_UP,
+#else /* CONFIG_PANTECH */
+	.pull = GPIOMUX_PULL_UP,
+#endif /* CONFIG_PANTECH */
 };
 
 static struct gpiomux_setting aux_pcm_active_config = {
@@ -256,11 +285,13 @@ static struct gpiomux_setting lcdc_suspend_cfg = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110610 audience a2020 clk
 static struct gpiomux_setting mdp_vsync_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 static struct gpiomux_setting hdmi_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -322,11 +353,13 @@ static struct gpiomux_setting ts_suspended = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110610 audience a2020 clk
 static struct gpiomux_setting mdp_vsync_active_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 static struct gpiomux_setting hdmi_active_1_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -334,11 +367,13 @@ static struct gpiomux_setting hdmi_active_1_cfg = {
 	.pull = GPIOMUX_PULL_UP,
 };
 
+#if !defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530)	
 static struct gpiomux_setting hdmi_active_2_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_16MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 */
 
 static struct gpiomux_setting hdmi_active_3_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -352,11 +387,13 @@ static struct gpiomux_setting pmic_suspended_cfg = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 
+#ifndef CONFIG_PANTECH_CAMERA_HW
 static struct gpiomux_setting cam_active_1_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 
 static struct gpiomux_setting cam_active_2_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -370,11 +407,13 @@ static struct gpiomux_setting cam_active_3_cfg = {
 	.pull = GPIOMUX_PULL_UP,
 };
 
+#ifndef CONFIG_PANTECH_CAMERA_HW
 static struct gpiomux_setting cam_active_4_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 
 static struct gpiomux_setting cam_active_5_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -395,6 +434,14 @@ static struct gpiomux_setting gsbi9 = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 #endif
+
+#ifdef CONFIG_SKY_BATTERY_MAX17040  // p14682 kobj 110607
+static struct gpiomux_setting gsbi11 = {
+	.func = GPIOMUX_FUNC_2,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 
 static struct gpiomux_setting ap2mdm_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -446,6 +493,7 @@ static struct gpiomux_setting mdm2ap_vddmin_suspend_cfg = {
 };
 
 static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
+#if !defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530)
 	{
 		.gpio      = 33,
 		.settings = {
@@ -453,6 +501,27 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 */
+#if (defined(CONFIG_MACH_MSM8X60_PRESTO)) //GSBI1 
+	{
+		.gpio      = 34,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi1,
+		},
+	},
+	{
+		.gpio      = 35,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi1,
+		},
+	},
+	{
+		.gpio      = 36,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi1,
+		},
+	},
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
 	{
 		.gpio      = 34,
 		.settings = {
@@ -474,20 +543,25 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+#if 1 //pz1946	
 	{
 		.gpio      = 43,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi3,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
 	{
 		.gpio      = 44,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi3,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
+#endif /* pz1946 */
 	{
 		.gpio      = 47,
 		.settings = {
@@ -502,20 +576,24 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
+#if 1//pz1946
 	{
 		.gpio      = 59,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi7,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
 		},
 	},
 	{
 		.gpio      = 60,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi7,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
 		},
 	},
+#endif /* pz1946 */
 	{
 		.gpio      = 64,
 		.settings = {
@@ -528,6 +606,39 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gsbi8,
 		},
 	},
+//pz1946 debug add 0301
+#if defined (CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee
+	{
+		.gpio      = 72,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &spi_suspended_config,
+			[GPIOMUX_ACTIVE]    = &spi_active,
+			//[GPIOMUX_SUSPENDED] = &gsbi10,
+		},
+	},
+	{
+		.gpio      = 73,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &spi_suspended_config,
+			[GPIOMUX_ACTIVE]    = &spi_active,
+			//[GPIOMUX_SUSPENDED] = &gsbi10,
+		},
+	},
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+#ifdef CONFIG_SKY_BATTERY_MAX17040 //p14682 kobj 110607 PS2 TEAM SHS : guel gaue porting
+	{
+		.gpio = 104, // sda
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi11,
+		},
+	},
+	{
+		.gpio = 103, // scl
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi11,
+		},
+	},
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 };
 
 static struct msm_gpiomux_config msm8x60_fluid_gsbi_configs[] __initdata = {
@@ -538,6 +649,7 @@ static struct msm_gpiomux_config msm8x60_fluid_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020
 	{
 		.gpio      = 72,
 		.settings = {
@@ -552,6 +664,7 @@ static struct msm_gpiomux_config msm8x60_fluid_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 };
 
 static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
@@ -591,12 +704,14 @@ static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#ifndef CONFIG_PANTECH_BT	
 	{
 		.gpio      = 128,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#endif /* CONFIG_PANTECH_BT */
 	{
 		.gpio      = 129,
 		.settings = {
@@ -642,12 +757,14 @@ static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#ifndef CONFIG_PANTECH_BT
 	{
 		.gpio      = 138,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#endif /* CONFIG_PANTECH_BT */
 	{
 		.gpio      = 139,
 		.settings = {
@@ -1410,6 +1527,7 @@ static struct msm_gpiomux_config msm8x60_lcdc_configs[] __initdata = {
 };
 
 static struct msm_gpiomux_config msm8x60_mdp_vsync_configs[] __initdata = {
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110610 audience a2020 clk
 	{
 		.gpio = 28,
 		.settings = {
@@ -1417,6 +1535,7 @@ static struct msm_gpiomux_config msm8x60_mdp_vsync_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &mdp_vsync_suspend_cfg,
 		},
 	},
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 };
 
 static struct msm_gpiomux_config msm8x60_hdmi_configs[] __initdata = {
@@ -1427,6 +1546,7 @@ static struct msm_gpiomux_config msm8x60_hdmi_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
 	},
+#if !defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530)	
 	{
 		.gpio = 170,
 		.settings = {
@@ -1441,6 +1561,7 @@ static struct msm_gpiomux_config msm8x60_hdmi_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
 	},
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 */
 	{
 		.gpio = 172,
 		.settings = {
@@ -1491,6 +1612,75 @@ static struct msm_gpiomux_config msm8x60_common_configs[] __initdata = {
 };
 
 static struct msm_gpiomux_config msm8x60_cam_configs[] __initdata = {
+#ifdef CONFIG_PANTECH_CAMERA_HW
+	{	// CAMIO_MCLK
+		.gpio = 32,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_5_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+	{	// CAMIO_I2C_SDA
+		.gpio = 47,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_3_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+	{	// CAMIO_I2C_SCL
+		.gpio = 48,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_3_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) && defined(CONFIG_PANTECH_CAMERA_MT9P111)
+	{	// CAMIO_R_STBY(_N)
+		.gpio = 86,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+	{	// CAMIO_R_RST(_N)
+		.gpio = 106,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+	{	// CAMIO_F_STBY(_N)
+		.gpio = 139,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+	{	// CAMIO_F_RST(_N)
+		.gpio = 137,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+	{	// CAMIO_FL_DRV_EN
+		.gpio = 31,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+	{	// CAMIO_FL_MODE
+		.gpio = 62,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+		},
+	},
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+#else /* CONFIG_PANTECH_CAMERA_HW */
 	{
 		.gpio = 29,
 		.settings = {
@@ -1554,6 +1744,7 @@ static struct msm_gpiomux_config msm8x60_cam_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
 		},
 	},
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 };
 
 static struct msm_gpiomux_config msm8x60_charm_configs[] __initdata = {
@@ -1588,7 +1779,11 @@ static struct msm_gpiomux_config msm8x60_charm_configs[] __initdata = {
 	},
 	/* MDM2AP_WAKEUP */
 	{
+#if defined(CONFIG_PANTECH_PRESTO_BOARD)
+		.gpio = 45,
+#else /* CONFIG_PANTECH_PRESTO_BOARD */
 		.gpio = 40,
+#endif /* CONFIG_PANTECH_PRESTO_BOARD */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ap2mdm_cfg,
 		}

@@ -41,16 +41,50 @@
 #include <linux/leds.h>
 #include <linux/pm_runtime.h>
 
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+#include <mach/gpio.h>
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+
 #define MSM_FB_C
 #include "msm_fb.h"
 #include "mddihosti.h"
 #include "tvenc.h"
 #include "mdp.h"
 #include "mdp4.h"
+#ifdef CONFIG_SW_RESET
+#include "../../../arch/arm/mach-msm/sky_sys_reset.h"
+#endif /* CONFIG_SW_RESET */
+
+#ifdef CONFIG_FB_MSM_LOGO
+#define INIT_IMAGE_FILE "/initlogo.rle"
+extern int load_565rle_image(char *filename, bool bf_supported);
+#endif /* CONFIG_FB_MSM_LOGO */
+
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+#define BATTERY_IMAGE_FILE "/logo2.rle"
+extern int sky_charging_status(void);
+int offline_charging_status = 0;
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+extern void gpio_set_132_trickle_leakeage(void);
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MSM_FB_NUM	3
 #endif
+
+/*  Idle wakelock to prevent PC between wake up and Vsync */
+struct wake_lock mdp_idle_wakelock;
+#ifdef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX //(lcd)march 2012.3.19
+static void msm_fb_set_backlight_old(struct msm_fb_data_type *mfd, __u32 bkl_lvl, u32 save);
+#endif /* CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX */
+
+#ifdef CONFIG_SW_RESET
+#define REBOOT_IMAGE_FILE "/reboot.rle"
+#endif /* CONFIG_SW_RESET */
+#if defined(TARGET_BUILD_USER)
+static int is_blind_reset = 0;
+#endif /* TARGET_BUILD_USER */
 
 static unsigned char *fbram;
 static unsigned char *fbram_phys;
@@ -114,6 +148,9 @@ static int msm_fb_mmap(struct fb_info *info, struct vm_area_struct * vma);
 static int mdp_bl_scale_config(struct msm_fb_data_type *mfd,
 						struct mdp_bl_scale_data *data);
 static void msm_fb_scale_bl(__u32 *bl_lvl);
+#if defined(CONFIG_F_SKYDISP_LCD_FORCE_ONOFF) //(lcd)march 2012.3.21
+static int msm_fb_blank_sub_force(int blank_mode, struct fb_info *info, int bl);
+#endif /* CONFIG_F_SKYDISP_LCD_FORCE_ONOFF */
 
 #ifdef MSM_FB_ENABLE_DBGFS
 
@@ -153,6 +190,13 @@ void msm_fb_debugfs_file_create(struct dentry *root, const char *name,
 }
 #endif
 
+#ifdef CONFIG_F_SKYDISP_NO_CURSOR_IN_BOOT
+int msm_fb_cursor_dummy(struct fb_info *info, struct fb_cursor *cursor)
+{
+	return 0;
+}
+#endif /* CONFIG_F_SKYDISP_NO_CURSOR_IN_BOOT */
+
 int msm_fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
@@ -174,6 +218,10 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	struct msm_fb_data_type *mfd = dev_get_drvdata(led_cdev->dev->parent);
 	int bl_lvl;
 
+#if 0//def CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX //(lcd)march 2012.3.19
+	static bool bOff = false;
+#endif /* CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX */
+
 	if (value > MAX_BACKLIGHT_BRIGHTNESS)
 		value = MAX_BACKLIGHT_BRIGHTNESS;
 
@@ -185,7 +233,22 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	if (!bl_lvl && value)
 		bl_lvl = 1;
 
+#if 0//def CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX //(lcd)march 2012.3.19
+	if (bl_lvl == 0){
+		bOff = true;
+		msm_fb_set_backlight_old(mfd, bl_lvl, 0);
+	} else {
+		if (bOff == true) {
+			struct msm_fb_panel_data *pdata =(struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+			pdata->on(mfd->pdev);
+			mfd->bl_level = 0;
+			bOff = false;
+		}
+		msm_fb_set_backlight(mfd, bl_lvl);
+	}
+#else /* CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX */
 	msm_fb_set_backlight(mfd, bl_lvl);
+#endif /* CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX */
 }
 
 static struct led_classdev backlight_led = {
@@ -352,6 +415,10 @@ static int msm_fb_probe(struct platform_device *pdev)
 		MSM_FB_DEBUG("msm_fb_probe:  phy_Addr = 0x%x virt = 0x%x\n",
 			     (int)fbram_phys, (int)fbram);
 
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+		gpio_set_value(157 , 0); //LCD_RESET pin
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+
 		iclient = msm_ion_client_create(-1, pdev->name);
 		if (IS_ERR_OR_NULL(iclient)) {
 			pr_err("msm_ion_client_create() return"
@@ -381,7 +448,11 @@ static int msm_fb_probe(struct platform_device *pdev)
 
 	vsync_cntrl.dev = mfd->fbi->dev;
 	mfd->panel_info.frame_count = 0;
+#if defined(CONFIG_MACH_MSM8X60_PRESTO)
+	mfd->bl_level = 3;
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
 	mfd->bl_level = 0;
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 	bl_scale = 1024;
 	bl_min_lvl = 255;
 #ifdef CONFIG_FB_MSM_OVERLAY
@@ -803,19 +874,67 @@ void msm_fb_set_backlight(struct msm_fb_data_type *mfd, __u32 bkl_lvl)
 	msm_fb_scale_bl(&temp);
 	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
 
+#if defined(TARGET_BUILD_USER)
+	if (is_blind_reset) {
+		pr_info("[LIVED] blind reset! return!\n");
+		return;
+	}
+#endif /* TARGET_BUILD_USER */
+
 	if ((pdata) && (pdata->set_backlight)) {
 		down(&mfd->sem);
+#ifdef CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT //(lcd)march 2012.3.19
+        if (bkl_lvl != mfd->bl_level) {
+#endif /* CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT */
 		if (bl_level_old == temp) {
 			up(&mfd->sem);
 			return;
 		}
 		mfd->bl_level = temp;
+#ifdef CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT
+        if (mfd->panel_power_on)
+#endif /* CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT */
 		pdata->set_backlight(mfd);
 		mfd->bl_level = bkl_lvl;
 		bl_level_old = temp;
+#ifdef CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT
+        }
+#endif /* CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT */
 		up(&mfd->sem);
 	}
 }
+
+#ifdef CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT //(lcd)march 2012.3.19
+static void msm_fb_set_backlight_old(struct msm_fb_data_type *mfd, __u32 bkl_lvl, u32 save)
+{
+	struct msm_fb_panel_data *pdata;
+
+	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+#if defined(TARGET_BUILD_USER)
+	if (is_blind_reset) {
+		pr_info("[LIVED] blind reset! return!\n");
+		return;
+	}
+#endif /* TARGET_BUILD_USER */
+	if ((pdata) && (pdata->set_backlight)) {
+		down(&mfd->sem);
+		if ((bkl_lvl != mfd->bl_level) || (!save)) {
+			u32 old_lvl;
+			old_lvl = mfd->bl_level;
+			mfd->bl_level = bkl_lvl;
+			//if (mfd->panel_power_on)
+			pdata->set_backlight(mfd);
+
+			if (!save)
+				mfd->bl_level = old_lvl;
+		}
+		up(&mfd->sem);
+	}
+}
+#endif /* CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT */
+#ifdef CONFIG_SW_RESET
+void msm_reset_set_bl(int bl);
+#endif /* CONFIG_SW_RESET */
 
 static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 			    boolean op_enable)
@@ -840,6 +959,13 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 			ret = pdata->on(mfd->pdev);
 			if (ret == 0) {
 				mfd->panel_power_on = TRUE;
+
+#ifdef CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT //(lcd)march 2012.3.19
+				msm_fb_set_backlight_old(mfd, mfd->bl_level, 0);
+#endif /* CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT */
+#ifdef CONFIG_SW_RESET
+				msm_reset_set_bl(1);
+#endif /* CONFIG_SW_RESET */
 
 /* ToDo: possible conflict with android which doesn't expect sw refresher */
 /*
@@ -870,12 +996,23 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 			bl_updated = 0;
 
 			msleep(16);
+#if 1 //ndef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX //(lcd)march 2012.3.19
+#ifdef CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT
+			msm_fb_set_backlight_old(mfd, 0, 0);
+#endif /* CONFIG_F_SKYDISP_QBUG_FIX_BACKLIGHT */
+#endif /* CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX */
 			ret = pdata->off(mfd->pdev);
+#ifdef CONFIG_SW_RESET
+			msm_reset_set_bl(0);
+#endif /* CONFIG_SW_RESET */
 			if (ret)
 				mfd->panel_power_on = curr_pwr_state;
 
 			mfd->op_enable = TRUE;
 		}
+#if defined(TARGET_BUILD_USER)
+		is_blind_reset = 0;
+#endif /* TARGET_BUILD_USER */
 		break;
 	}
 
@@ -1044,13 +1181,68 @@ static int msm_fb_mmap(struct fb_info *info, struct vm_area_struct * vma)
 	return 0;
 }
 
+#if defined(CONFIG_F_SKYDISP_LCD_FORCE_ONOFF) //(lcd)march 2012.3.21
+/* just force lcd on/off, no backlight control */
+static int msm_fb_blank_sub_force(int onoff, struct fb_info *info, int bl)
+{
+	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
+	struct msm_fb_panel_data *pdata = NULL;
+	int ret = 0;
+
+	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
+	if ((!pdata) || (!pdata->on) || (!pdata->off)) {
+		printk(KERN_INFO "msm_fb_blank_sub_force: no panel operation detected!\n");
+		return -ENODEV;
+	}
+
+	printk(KERN_INFO"[LIVED] msm_fb_blank_sub_force: onoff=%d, mfd->panel_power_on=%d\n",
+			onoff, mfd->panel_power_on);
+	if (onoff) {
+		if (!mfd->panel_power_on) {
+			msleep(16);
+			ret = pdata->on(mfd->pdev);
+			if (ret == 0) {
+				mfd->panel_power_on = TRUE;
+				msleep(16);
+				if (bl == 1) {
+					msm_fb_set_backlight_old(mfd, mfd->bl_level, 0);
+				}
+			}
+		}
+	} else {
+		if (mfd->panel_power_on) {
+			int curr_pwr_state;
+
+			//mfd->op_enable = FALSE;
+			curr_pwr_state = mfd->panel_power_on;
+			mfd->panel_power_on = FALSE;
+
+			if (bl == 1) {
+				msm_fb_set_backlight_old(mfd, 0, 0);
+			}
+			msleep(16);
+			ret = pdata->off(mfd->pdev);
+			if (ret)
+				mfd->panel_power_on = curr_pwr_state;
+
+			//mfd->op_enable = TRUE;
+		}
+	}
+	return ret;
+}
+#endif /* CONFIG_F_SKYDISP_LCD_FORCE_ONOFF */
+
 static struct fb_ops msm_fb_ops = {
 	.owner = THIS_MODULE,
 	.fb_open = msm_fb_open,
 	.fb_release = msm_fb_release,
 	.fb_read = NULL,
 	.fb_write = NULL,
+#ifndef CONFIG_F_SKYDISP_NO_CURSOR_IN_BOOT
 	.fb_cursor = NULL,
+#else /* CONFIG_F_SKYDISP_NO_CURSOR_IN_BOOT */
+	.fb_cursor = msm_fb_cursor_dummy,
+#endif /* CONFIG_F_SKYDISP_NO_CURSOR_IN_BOOT */
 	.fb_check_var = msm_fb_check_var,	/* vinfo check */
 	.fb_set_par = msm_fb_set_par,	/* set the video mode according to info->var */
 	.fb_setcolreg = NULL,	/* set color register */
@@ -1077,6 +1269,135 @@ static __u32 msm_fb_line_length(__u32 fb_index, __u32 xres, int bpp)
 	else
 		return xres * bpp;
 }
+
+#ifdef CONFIG_SW_RESET
+#define RESTART_BL_ON		0x9A247D59
+#define RESTART_BL_OFF		0x1B93214E
+int msm_reset_get_bl(void)
+{
+	void *restart_bl;
+	int bl;
+
+	restart_bl = ioremap_nocache(RESTART_REASON_ADDR, 0x1000);
+	bl = readl(restart_bl+8);
+	iounmap(restart_bl);
+	if (bl == RESTART_BL_ON) {
+		bl = 1;
+	} else if (bl == RESTART_BL_OFF) {
+		bl = 0;
+	} else {
+		bl = -1;
+	}
+
+	printk(KERN_INFO "[LIVED] reset_get_bl=%d\n", bl);
+
+	return bl;
+}
+
+void msm_reset_set_bl(int bl)
+{
+	void *restart_bl;
+
+	restart_bl = ioremap_nocache(RESTART_REASON_ADDR, 0x1000);
+	if (bl > 0) {
+		bl = RESTART_BL_ON;
+	} else {
+		bl = RESTART_BL_OFF;
+	}
+	writel(bl, restart_bl+8);
+	iounmap(restart_bl);
+
+	printk(KERN_INFO "[LIVED] reset_set_bl=%x\n", bl);
+}
+
+int msm_reset_reason_read_only(void)
+{
+	void *restart_reason;
+	int reason, result;
+
+	restart_reason = ioremap_nocache(RESTART_REASON_ADDR, 0x1000);
+	reason = readl(restart_reason);
+
+	iounmap(restart_reason);
+	switch (reason)
+	{
+	case SYS_RESET_REASON_EXCEPTION:
+	case SYS_RESET_REASON_ASSERT:
+	case SYS_RESET_REASON_LINUX:
+	case SYS_RESET_REASON_ANDROID:
+	case SYS_RESET_REASON_ABNORMAL:
+	case SYS_RESET_REASON_MDM_EXCEPTION:
+	case SYS_RESET_REASON_UNKNOWN:
+		result = 1;
+		break;
+	default:
+		result = 0;
+		break;
+	}
+
+	printk(KERN_INFO "[LIVED] msm_reset_reason_read_only:reason[%x],result[%x]\n",reason,result);
+	return result;
+}
+
+int msm_reset_reason(void)
+{
+	void *restart_reason;
+	int reason, result;
+	struct proc_dir_entry *reset_info;
+
+	restart_reason = ioremap_nocache(RESTART_REASON_ADDR, 0x1000);
+	reason = readl(restart_reason);
+
+	sky_sys_rst_set_prev_reset_info();
+#if defined(CONFIG_PANTECH_PRESTO_BOARD)
+	reset_info = create_proc_entry("pantech_resetinfo" , \
+            S_IRUSR | S_IWUSR | \
+            S_IRGRP | S_IWGRP, NULL);
+#else /* CONFIG_PANTECH_PRESTO_BOARD */
+	reset_info = create_proc_entry("pantech_resetinfo" , \
+			S_IRUGO | S_IWUGO, NULL);
+#endif /* CONFIG_PANTECH_PRESTO_BOARD */
+
+	if (reset_info) {
+		reset_info->read_proc = sky_sys_rst_read_proc_reset_info;
+		reset_info->write_proc = sky_sys_rst_write_proc_reset_info;
+		reset_info->data = NULL;
+	}
+
+	//writel(SYS_RESET_REASON_ABNORMAL, restart_reason);
+	iounmap(restart_reason);
+
+	switch (reason)
+	{
+	case SYS_RESET_REASON_EXCEPTION:
+	case SYS_RESET_REASON_ASSERT:
+	case SYS_RESET_REASON_LINUX:
+	case SYS_RESET_REASON_ANDROID:
+	case SYS_RESET_REASON_ABNORMAL:
+	case SYS_RESET_REASON_MDM_EXCEPTION:
+	case SYS_RESET_REASON_UNKNOWN:
+		result = 1;
+		break;
+	default:
+		result = 0;
+		break;
+	}
+
+	printk(KERN_INFO "[allydrop] msm_reset_reason:reason[%x],result[%x]\n",reason,result);
+	return result;
+}
+
+static void msm_reset_reason_clear(void)
+{
+	void *restart_reason;
+
+	restart_reason = ioremap_nocache(RESTART_REASON_ADDR, 0x1000);
+	writel(SYS_RESET_REASON_ABNORMAL, restart_reason);
+	iounmap(restart_reason);
+
+	printk(KERN_INFO "[LIVED] msm_reset_reason_clear\n");
+}
+#endif /* CONFIG_SW_RESET */
 
 static int msm_fb_register(struct msm_fb_data_type *mfd)
 {
@@ -1111,8 +1432,15 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	var->grayscale = 0,	/* No graylevels */
 	var->nonstd = 0,	/* standard pixel format */
 	var->activate = FB_ACTIVATE_VBL,	/* activate it at vsync */
-	var->height = -1,	/* height of picture in mm */
-	var->width = -1,	/* width of picture in mm */
+#ifdef CONFIG_MACH_MSM8X60_PRESTO  // kkcho_temp_presto
+	var->height = 86,	/* height of picture in mm */
+	var->width = 52,	/* width of picture in mm */
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
+	var->height = 101,	/* height of picture in mm */
+	var->width = 63,	/* width of picture in mm */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+	//var->height = -1,	/* height of picture in mm */
+	//var->width = -1,	/* width of picture in mm */
 	var->accel_flags = 0,	/* acceleration flags */
 	var->sync = 0,	/* see FB_SYNC_* */
 	var->rotate = 0,	/* angle we rotate counter clockwise */
@@ -1427,12 +1755,64 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	    ("FrameBuffer[%d] %dx%d size=%d bytes is registered successfully!\n",
 	     mfd->index, fbi->var.xres, fbi->var.yres, fbi->fix.smem_len);
 
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+	if (mfd->index == 0)
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+	{
+#if defined(CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL) && defined(CONFIG_FB_MSM_LOGO)
+
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+		if (sky_charging_status()) {
+			ret = load_565rle_image(BATTERY_IMAGE_FILE, bf_supported);
+			offline_charging_status = 1;
+#if defined(CONFIG_MACH_MSM8X60_EF39S)
+			mfd->bl_level = 10;
+#endif /* CONFIG_MACH_MSM8X60_EF39S */
+		} else
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+#ifdef CONFIG_SKY_CHARGING			// kobj 110827
+			if (sky_charging_status())
+				gpio_set_132_trickle_leakeage();   //kobj 
+#endif /* CONFIG_SW_RESET */
+
+#ifdef CONFIG_SW_RESET
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
+		if (msm_reset_reason()) {
+			if (msm_reset_get_bl() == 1)
+				ret = load_565rle_image(REBOOT_IMAGE_FILE, bf_supported);
+			else {
+#if defined(TARGET_BUILD_USER)
+				is_blind_reset = 1;
+#endif /* TARGET_BUILD_USER */
+				ret = 1;
+			}
+		} else
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
+		msm_reset_reason();
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+#endif /* CONFIG_SW_RESET */
+		ret = load_565rle_image(INIT_IMAGE_FILE, bf_supported);
+
+#ifdef CONFIG_SW_RESET
+		msm_reset_reason_clear();
+#endif /* CONFIG_SW_RESET */
+
+		if (!ret) {
+			if (msm_fb_blank_sub(FB_BLANK_UNBLANK, fbi, true)) {
+				printk(KERN_ERR "[LIVED] msm_fb_register: can't turn on display!\n");
+			}
+		}
+#else /* CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL && CONFIG_FB_MSM_LOGO */
 #ifdef CONFIG_FB_MSM_LOGO
 	/* Flip buffer */
 	if (!load_565rle_image(INIT_IMAGE_FILE, bf_supported))
 		;
 #endif
+#endif /* CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL && CONFIG_FB_MSM_LOGO */
 	ret = 0;
+	}
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	if (mfd->panel_info.type != DTV_PANEL) {
@@ -1607,6 +1987,10 @@ static int msm_fb_open(struct fb_info *info, int user)
 	return 0;
 }
 
+#if defined(CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL) || defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+boolean no_release_first = TRUE;
+#endif /* CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL || CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
+
 static int msm_fb_release(struct fb_info *info, int user)
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
@@ -1620,7 +2004,15 @@ static int msm_fb_release(struct fb_info *info, int user)
 
 	mfd->ref_cnt--;
 
-	if (!mfd->ref_cnt) {
+#if defined(CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL) || defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+	if (!mfd->ref_cnt && !no_release_first)
+#else /* CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL || CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
+	if (!mfd->ref_cnt)
+#endif /* CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL || CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
+	{
+#if defined(CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL) || defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+		no_release_first = FALSE;
+#endif /* CONFIG_F_SKYDISP_BOOT_LOGO_IN_KERNEL || CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
 		if ((ret =
 		     msm_fb_blank_sub(FB_BLANK_POWERDOWN, info,
 				      mfd->op_enable)) != 0) {
@@ -3258,6 +3650,10 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 	struct msmfb_mdp_pp mdp_pp;
 	int ret = 0;
 
+#if defined(CONFIG_F_SKYDISP_LCD_FORCE_ONOFF) //(lcd)marh 2012.3.21
+	boolean	enable;
+#endif /* CONFIG_F_SKYDISP_LCD_FORCE_ONOFF */
+
 	switch (cmd) {
 #ifdef CONFIG_FB_MSM_OVERLAY
 	case MSMFB_OVERLAY_GET:
@@ -3536,6 +3932,26 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 
 		ret = msmfb_handle_pp_ioctl(mfd, &mdp_pp);
 		break;
+
+#ifdef CONFIG_F_SKYDISP_LCD_RESET
+	case MSMFB_SKY_LCD_RESET_INIT:
+		printk(KERN_INFO "[LIVED] LCD reset initialization\n");
+		down(&msm_fb_ioctl_ppp_sem);
+		msm_fb_blank_sub_force(0, info, 1);
+		// Need Real GPIO LCD reset? do not need right now...
+		msm_fb_blank_sub_force(1, info, 1);
+		up(&msm_fb_ioctl_ppp_sem);
+		break;
+#endif /* CONFIG_F_SKYDISP_LCD_RESET */
+#ifdef CONFIG_F_SKYDISP_LCD_FORCE_ONOFF
+	case MSMFB_SKY_LCD_FORCE_ONOFF:
+		ret = copy_from_user(&enable, argp, sizeof(enable));
+		printk(KERN_INFO "[LIVED] LCD force onoff=%d\n", enable);
+		down(&msm_fb_ioctl_ppp_sem);
+		msm_fb_blank_sub_force(enable, info, 1);
+		up(&msm_fb_ioctl_ppp_sem);
+		break;
+#endif /* CONFIG_F_SKYDISP_LCD_FORCE_ONOFF */
 
 	default:
 		MSM_FB_INFO("MDP: unknown ioctl (cmd=%x) received!\n", cmd);

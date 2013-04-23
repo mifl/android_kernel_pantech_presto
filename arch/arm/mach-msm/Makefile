@@ -207,6 +207,7 @@ obj-$(CONFIG_MACH_MSM8X60_SURF) += board-msm8x60.o
 obj-$(CONFIG_MACH_MSM8X60_FFA) += board-msm8x60.o
 obj-$(CONFIG_MACH_MSM8X60_FLUID) += board-msm8x60.o
 obj-$(CONFIG_MACH_MSM8X60_DRAGON) += board-msm8x60.o
+obj-$(CONFIG_MACH_MSM8X60_PRESTO) += board-msm8x60.o mdm.o
 obj-$(CONFIG_MACH_TYPE_MSM8X60_FUSION) += board-msm8x60.o mdm.o
 obj-$(CONFIG_MACH_MSM8X60_FUSN_FFA) += board-msm8x60.o mdm.o
 obj-$(CONFIG_TROUT_H2W) += board-trout-h2w.o
@@ -303,6 +304,7 @@ obj-$(CONFIG_MSM_SLEEP_STATS_DEVICE) += idle_stats_device.o
 obj-$(CONFIG_MSM_DCVS) += msm_dcvs_scm.o msm_dcvs.o msm_dcvs_idle.o
 obj-$(CONFIG_MSM_SHOW_RESUME_IRQ) += msm_show_resume_irq.o
 obj-$(CONFIG_BT_MSM_PINTEST)  += btpintest.o
+obj-$(CONFIG_SW_RESET) += sky_sys_reset.o
 obj-$(CONFIG_MSM_FAKE_BATTERY) += fish_battery.o
 obj-$(CONFIG_MSM_RPC_VIBRATOR) += msm_vibrator.o
 obj-$(CONFIG_MSM_NATIVE_RESTART) += restart.o
@@ -319,3 +321,9 @@ obj-$(CONFIG_ARCH_MSM8960) += mdm2.o mdm_common.o
 obj-$(CONFIG_MSM_RTB) += msm_rtb.o
 obj-$(CONFIG_MSM_CACHE_ERP) += cache_erp.o
 obj-$(CONFIG_MSM_CACHE_DUMP) += msm_cache_dump.o
+
+obj-$(CONFIG_PANTECH_ERR_CRASH_LOGGING) += pantech_apanic.o sky_sys_reset.o
+
+ifdef CONFIG_SKY_WLAN
+obj-$(CONFIG_PANMAC) += panmac.o rpc_nv.o
+endif

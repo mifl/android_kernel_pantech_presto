@@ -199,6 +199,11 @@ enum msm_tlmm_pull_tgt {
 	TLMM_PULL_SDC1_CMD,
 	TLMM_PULL_SDC1_DATA,
 };
+#ifdef CONFIG_USER_GPIO_CONTROL
+int sky_user_set_sleep_gpio(int gpio);
+int sky_user_get_sleep_gpio(int gpio);
+int sky_user_get_curr_gpio(int gpio);
+#endif /* CONFIG_USER_GPIO_CONTROL */
 
 #ifdef CONFIG_MSM_V2_TLMM
 void msm_tlmm_set_hdrive(enum msm_tlmm_hdrive_tgt tgt, int drv_str);

@@ -10,6 +10,11 @@
  * GNU General Public License for more details.
  *
  */
+
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+#include "timpani_profile_8x60_presto.h"
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
+
 #ifndef __MACH_QDSP6V2_TIMPANI_PROFILE_H
 #define __MACH_QDSP6V2_TIMPANI_PROFILE_H
 
@@ -3223,3 +3228,5 @@
 	{ADIE_CODEC_ACTION_STAGE_REACHED, ADIE_CODEC_DIGITAL_OFF} }
 
 #endif
+
+#endif /*CONFIG_MACH_MSM8X60_PRESTO*/

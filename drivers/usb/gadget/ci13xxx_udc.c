@@ -66,6 +66,7 @@
 #include <linux/usb/otg.h>
 
 #include "ci13xxx_udc.h"
+#include "f_pantech_android.h"
 
 
 /******************************************************************************
@@ -2762,6 +2763,10 @@ static const struct usb_ep_ops usb_ep_ops = {
 	.fifo_flush    = ep_fifo_flush,
 };
 
+#ifdef CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE
+extern int set_factory_mode(bool onoff);
+#endif /* CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE */
+
 /******************************************************************************
  * GADGET block
  *****************************************************************************/
@@ -2771,8 +2776,10 @@ static int ci13xxx_vbus_session(struct usb_gadget *_gadget, int is_active)
 	unsigned long flags;
 	int gadget_ready = 0;
 
-	if (!(udc->udc_driver->flags & CI13XXX_PULLUP_ON_VBUS))
+	if (!(udc->udc_driver->flags & CI13XXX_PULLUP_ON_VBUS)){
+		printk(KERN_INFO "vbus_session Out!!!!!\n");	
 		return -EOPNOTSUPP;
+	}
 
 	spin_lock_irqsave(udc->lock, flags);
 	udc->vbus_active = is_active;
@@ -2780,16 +2787,29 @@ static int ci13xxx_vbus_session(struct usb_gadget *_gadget, int is_active)
 		gadget_ready = 1;
 	spin_unlock_irqrestore(udc->lock, flags);
 
+	printk(KERN_INFO "vbus_gadget SOFT connect : [%d]!!!!!!\n", udc->softconnect);
 	if (gadget_ready) {
 		if (is_active) {
+			printk(KERN_INFO "vbus_gadget connect!!!!!!\n");
 			pm_runtime_get_sync(&_gadget->dev);
 			hw_device_reset(udc);
-			if (udc->softconnect)
+			if (udc->softconnect){
 				hw_device_state(udc->ep0out.qh.dma);
+				
+				#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+					usb_connect_cb();
+				#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
+			}
+
 		} else {
+			printk(KERN_INFO "vbus_gadget disconnect!!!!!!\n");
+			
 			hw_device_state(0);
 			_gadget_stop_activity(&udc->gadget);
 			pm_runtime_put_sync(&_gadget->dev);
+#ifdef CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE
+		  set_factory_mode(false);
+#endif /* CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE */
 		}
 	}
 

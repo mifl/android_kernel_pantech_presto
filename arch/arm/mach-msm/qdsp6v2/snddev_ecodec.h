@@ -22,5 +22,11 @@ struct snddev_ecodec_data {
 	u32 conf_pcm_ctl_val;
 	u32 conf_aux_codec_intf;
 	u32 conf_data_format_padding_val;
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 //jmlee
+	enum hsed_controller *pmctl_id; /* tx only enable mic bias */  //20110224 jhsong
+	u32 pmctl_id_sz;  //20110224 jhsong
+	void (*pamp_on) (void);
+	void (*pamp_off) (void);
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 };
 #endif

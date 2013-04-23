@@ -67,6 +67,178 @@ do {									\
 	msg_mask_tbl_ptr += MAX_SSID_PER_RANGE * sizeof(int);		\
 } while (0)
 
+#ifdef CONFIG_PANTECH_SKY
+/*  Sub Command 	*/
+enum
+{
+FACTORY_CS_AUTO_INFO_I          = 0x01,
+FACTORY_CS_AUTO_LAYER1_I        = 0x02,
+FACTORY_CS_AUTO_LAYER2_I        = 0x03,
+FACTORY_CS_AUTO_LAYER3_I        = 0x04,
+FACTORY_CS_AUTO_MEMORY_I        = 0x05,
+FACTORY_CS_AUTO_CALL1_I         = 0x06,
+FACTORY_CS_AUTO_CALL2_I         = 0x07,
+FACTORY_CS_AUTO_CALL3_I         = 0x08,
+FACTORY_CS_AUTO_RESET_I         = 0x09,
+FACTORY_CS_AUTO_ERRLOG_I        = 0x0A,
+FACTORY_CS_AUTO_CALL4_I         = 0x0B,
+FACTORY_CS_AUTO_CALL5_I         = 0x0C,
+FACTORY_MSECTOR_WRITE_I         = 0x14,
+FACTORY_MSECTOR_READ_I          = 0x15,
+FACTORY_CAL_FLAG_I              = 0x1E,
+FACTORY_FIRMWARE_VER_I          = 0x27,
+FACTORY_M3A_NAND_VER_I          = 0x28,
+FACTORY_FINAL_I                 = 0x30,
+FACTORY_FINAL_CHECK_I           = 0x31,
+FACTORY_INIT_ALL_I              = 0x37,
+FACTORY_INIT_RESET_I            = 0x38,
+FACTORY_INIT_SYS_CHECK          = 0x3A,
+FACTORY_RSSIBAR_READ_I          = 0x3C,
+FACTORY_OPENING_DAY_READ_I      = 0x40,
+FACTORY_EVDO_SET_I              = 0x46,
+FACTORY_EVDO_RELEASE_I          = 0x47,
+FACTORY_EVDO_CHECK_I            = 0x48,
+FACTORY_DMB_STANDBY_I           = 0x50,
+FACTORY_DMB_TEST_START_I        = 0x51,
+FACTORY_DMB_MEASURE_I           = 0x52,
+FACTORY_DMB_BER_READ_I          = 0x53,
+FACTORY_DMB_TEST_FINISH_I       = 0x54,
+FACTORY_DMB_CAS_ID_I            = 0x55,
+FACTORY_BD_ADDR_RD_I            = 0x5A,
+FACTORY_BD_ADDR_WR_I            = 0x5B,
+FACTORY_BT_TEST_SET_I           = 0x5C,
+FACTORY_BT_TEST_RELEASE_I       = 0x5D,
+FACTORY_BT_TEST_CHECK_I         = 0x5E,
+FACTORY_WIFI_MODESET_I          = 0x60,
+FACTORY_WIFI_TXCTRL_I           = 0x61,
+FACTORY_WIFI_RXRPT_I            = 0x62,
+FACTORY_WIFI_RELEASE_I          = 0x63,
+FACTORY_BOOT_CHECK_I            = 0x64,
+FACTORY_KEY_PRESS_I             = 0x6E,
+FACTORY_KEY_SCAN_I              = 0x6F,
+FACTORY_LCD_I                   = 0x73,
+FACTORY_SPEAKER_I               = 0x78,
+FACTORY_IRDA_I                  = 0x7D,
+FACTORY_BATTERY_BAR_I           = 0x87,
+FACTORY_BATTERY_ADC_I           = 0x88,
+FACTORY_CUTOFF_SWITCH_I         = 0x89,
+FACTORY_SLEEP_MODE_I            = 0x8C,
+FACTORY_TEMP_I                  = 0x91,
+FACTORY_GPS_APP_MAP_CHECK_I     = 0x9A,
+FACTORY_CONTENTS_CHECK_I        = 0x9B,
+FACTORY_AGPS_TEST_SET_I         = 0x9C,
+FACTORY_AGPS_TEST_CHECK_I       = 0x9D,
+FACTORY_AGPS_MEASURE_I          = 0x9E,
+FACTORY_AGPS_TEST_RELEASE_I     = 0x9F,
+FACTORY_CHECKSUM_READ_I         = 0xA0,
+FACTORY_USIM_MODE_SET_I         = 0xB0,
+FACTORY_USIM_MODE_CHECK_I       = 0xB1,
+FACTORY_USIM_CARD_CHECK_I       = 0xB2,
+FACTORY_USIM_PERSO_CONTROL_I    = 0xB3,
+FACTORY_SDCARD_CHECK_I          = 0xB4,
+FACTORY_SDMB_MODE_START_I       = 0xC0,
+FACTORY_SDMB_PILOT_CHECK_I      = 0xC1,
+FACTORY_SDMB_MEASURE_I          = 0xC2,
+FACTORY_SDMB_INFO_READ_I        = 0xC3,
+FACTORY_SDMB_MODE_FINISH_I      = 0xC4,
+FACTORY_BAUDRATE_CHANGE_I       = 0xC8,
+FACTORY_VOLUME_MAX_I            = 0xC9,
+FACTORY_SERIAL_NUMBER_I         = 0xCA,
+FACTORY_MODEL_NAME_I            = 0xCB,
+FACTORY_PMIC_INIT_I             = 0xCC,
+FACTORY_PIN_CODE_READ_I         = 0xD2,
+FACTORY_WCDMA_MIN_READ_I        = 0xD3,
+FACTORY_SHORTCUT_DIAL_I         = 0xD8,
+FACTORY_HDET_AUTO_CAL_I 	= 0xE2, // MSM, MDM HDET Auto Cal聖 肉 鎧採旋生稽 呪楳
+FACTORY_RF_PATH_INIT_I	= 0xE3, // RF Switch 段奄鉢. 戚暗 照馬檎 MDM Rx Div 繕舛 照喫
+#ifdef FEATURE_SKY_EFS_ERASE
+FACTORY_EFS_ERASE_I 	= 0xE4, // DM 乞球拭辞 EFS 段奄鉢 呪楳
+#endif
+FACTORY_MAGIC_BLOCK_ERASE_I =0xE5,	// MAGIC BLOCK 悪薦 段奄鉢
+FACTORY_ANDROID_SHUTDOWN_I      = 0xE6,
+FACTORY_PATTERN_UNLOCK_I	= 0xE7,	// PATTERN Aa臓他Y 即湛息淡A蔵卒 C即捉A|
+FACTORY_DO_NV_BACKUP_I          = 236,
+FACTORY_SET_CAL_FLAG_I          = 237,
+FACTORY_MONITORING_ONOFF_I      = 0xF0,
+FACTORY_ACTIVATION_DATE_READ_I  = 241,
+FACTORY_FUNCTION_FLAG_I         = 242,
+FACTORY_GS_COMPENSATION_I       = 243,
+FACTORY_SYSTEM_PARAMETER_I      = 244,
+FACTORY_MICP_CONTROL_I		      = 245,
+FACTORY_PREF_MODE_I             = 247,
+FACTORY_BOOT_MODE_I             = 248,
+FACTORY_BOOT_MODE_CHECK_I       = 249,
+FACTORY_TWND_RD_I			          = 250,
+FACTORY_TWND_WR_I			          = 251,
+FACTORY_FREEZONE_CONTROL_I      = 0xFE,
+FACTORY_CAMERA_SN_READ_I        = 0xFF,
+FACTORY_COMMAND_SIZE_I,
+};
+
+/*  Sub Command - MAINTENANCE SECTOR */
+enum
+{
+  FACTORY_MSECTOR_SETID_I,       // 00 - 0x00
+  FACTORY_MSECTOR_PCBA_I,        // 01 - 0x01
+  FACTORY_MSECTOR_ASSY_I,        // 02 - 0x02
+  FACTORY_MSECTOR_TEST_I,        // 03 - 0x03
+  FACTORY_MSECTOR_BSN_I,         // 04 - 0x04
+  FACTORY_MSECTOR_MINPOWER_I,    // 05 - 0x05
+  FACTORY_MSECTOR_MAXPOWER_I,    // 06 - 0x06
+  FACTORY_MSECTOR_COMP1_I,       // 07 - 0x07
+  FACTORY_MSECTOR_COMP2_I,       // 08 - 0x08
+  FACTORY_MSECTOR_COMP3_I,       // 09 - 0x09
+  FACTORY_MSECTOR_REPAIR1_I,     // 10 - 0x0A
+  FACTORY_MSECTOR_REPAIR2_I,     // 11 - 0x0B
+  FACTORY_MSECTOR_REPAIR3_I,     // 12 - 0x0C
+  FACTORY_MSECTOR_AS1_I,         // 13 - 0x0D
+  FACTORY_MSECTOR_AS2_I,         // 14 - 0x0E
+  FACTORY_MSECTOR_AS3_I,         // 15 - 0x0F
+  FACTORY_MSECTOR_MODEL_I,       // 16 - 0x10
+  FACTORY_MSECTOR_PROCESS_FLAG_I,// 17 - 0x11
+};
+
+static int skyfwddiagcmd[] =
+{
+	FACTORY_MSECTOR_WRITE_I,
+	FACTORY_MSECTOR_READ_I,
+	FACTORY_CHECKSUM_READ_I,
+	FACTORY_CAL_FLAG_I,
+	FACTORY_CUTOFF_SWITCH_I,
+	FACTORY_SLEEP_MODE_I,
+	FACTORY_TEMP_I,
+	FACTORY_AGPS_TEST_SET_I,
+	FACTORY_AGPS_TEST_CHECK_I,
+	FACTORY_AGPS_MEASURE_I,
+	FACTORY_AGPS_TEST_RELEASE_I,
+	FACTORY_USIM_CARD_CHECK_I,
+	FACTORY_PMIC_INIT_I,
+//	FACTORY_FUNCTION_FLAG_I, //p13120
+	FACTORY_SYSTEM_PARAMETER_I,
+ 	FACTORY_TWND_RD_I,
+	FACTORY_TWND_WR_I,
+
+//FEATURE_SKY_CP_FACTORY_DIAG_PROTOCOL[
+	FACTORY_FINAL_I,
+	FACTORY_FINAL_CHECK_I,
+	FACTORY_OPENING_DAY_READ_I,
+	FACTORY_USIM_MODE_SET_I,
+	FACTORY_USIM_MODE_CHECK_I,
+	FACTORY_WCDMA_MIN_READ_I,
+	FACTORY_USIM_PERSO_CONTROL_I,
+	FACTORY_RSSIBAR_READ_I,
+	FACTORY_CS_AUTO_CALL3_I,
+	FACTORY_PREF_MODE_I,
+  FACTORY_SHORTCUT_DIAL_I,	
+//]
+	FACTORY_ANDROID_SHUTDOWN_I,
+	FACTORY_PATTERN_UNLOCK_I, //ds2 team shs
+	FACTORY_DO_NV_BACKUP_I,
+	FACTORY_SET_CAL_FLAG_I,	
+	0x00
+};
+#endif /* CONFIG_PANTECH_SKY */
+
 #define ENCODE_RSP_AND_SEND(buf_length)				\
 do {									\
 	send.state = DIAG_STATE_START;					\
@@ -93,7 +265,11 @@ do {									\
 int chk_config_get_id(void)
 {
 	/* For all Fusion targets, Modem will always be present */
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa())
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+		|| machine_is_msm8x60_presto()
+#endif
+	)
 		return 0;
 
 	switch (socinfo_get_id()) {
@@ -320,7 +496,11 @@ int diag_device_write(void *buf, int proc_num, struct diag_request *write_ptr)
 #ifdef CONFIG_DIAG_SDIO_PIPE
 		else if (proc_num == SDIO_DATA) {
 			if (machine_is_msm8x60_fusion() ||
-					 machine_is_msm8x60_fusn_ffa()) {
+				machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+				|| machine_is_msm8x60_presto()
+#endif
+		) {
 				write_ptr->buf = buf;
 				err = usb_diag_write(driver->mdm_ch, write_ptr);
 			} else
@@ -741,6 +921,22 @@ void diag_wcnss_mask_update_fn(struct work_struct *work)
 						 diag_event_num_bytes);
 }
 
+#if 0
+void diag_msg_mask_update_fn(struct work_struct *work)
+{
+	diag_send_msg_mask_update(driver->ch_cntl);
+	diag_send_msg_mask_update(driver->chqdsp_cntl);
+	diag_send_msg_mask_update(driver->ch_wcnss_cntl);
+}
+
+void diag_log_mask_update_fn(struct work_struct *work)
+{
+	diag_send_log_mask_update(driver->ch_cntl);
+	diag_send_log_mask_update(driver->chqdsp_cntl);
+	diag_send_log_mask_update(driver->ch_wcnss_cntl);
+}
+#endif
+
 void diag_send_log_mask_update(smd_channel_t *ch, int equip_id)
 {
 	void *buf = driver->buf_log_mask_update;
@@ -1077,6 +1273,21 @@ static int diag_process_apps_pkt(unsigned char *buf, int len)
 		if (subsys_id != RESET_ID)
 			data_type = MODEM_DATA;
 	}
+
+#ifdef CONFIG_PANTECH_SKY
+		i=0;
+		/* Added DS2 kbkim */
+		if(cmd_code == 0xFA) { /* bug_fix: DIAG_FACTORY_REQ_F */
+			while(skyfwddiagcmd[i] != 0)
+			{	
+				if(subsys_id == skyfwddiagcmd[i++])
+				{
+					//printk("mArm Fwd id: %d\n", subsys_id );
+					return packet_type;;
+				}
+			}
+		}
+#endif /* CONFIG_PANTECH_SKY */
 
 	pr_debug("diag: %d %d %d", cmd_code, subsys_id, subsys_cmd_code);
 	for (i = 0; i < diag_max_reg; i++) {
@@ -1485,7 +1696,11 @@ int diagfwd_connect(void)
 	/* Poll USB channel to check for data*/
 	queue_work(driver->diag_wq, &(driver->diag_read_work));
 #ifdef CONFIG_DIAG_SDIO_PIPE
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()) {
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+		|| machine_is_msm8x60_presto()
+#endif
+		) {
 		if (driver->mdm_ch && !IS_ERR(driver->mdm_ch))
 			diagfwd_connect_sdio();
 		else
@@ -1509,7 +1724,11 @@ int diagfwd_disconnect(void)
 		driver->in_busy_wcnss = 1;
 	}
 #ifdef CONFIG_DIAG_SDIO_PIPE
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa())
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+		|| machine_is_msm8x60_presto()
+#endif
+	)
 		if (driver->mdm_ch && !IS_ERR(driver->mdm_ch))
 			diagfwd_disconnect_sdio();
 #endif
@@ -1547,7 +1766,11 @@ int diagfwd_write_complete(struct diag_request *diag_write_ptr)
 #ifdef CONFIG_DIAG_SDIO_PIPE
 	else if (buf == (void *)driver->buf_in_sdio)
 		if (machine_is_msm8x60_fusion() ||
-			 machine_is_msm8x60_fusn_ffa())
+			 machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			|| machine_is_msm8x60_presto()
+#endif
+		)
 			diagfwd_write_complete_sdio();
 		else
 			pr_err("diag: Incorrect buffer pointer while WRITE");
@@ -1589,7 +1812,11 @@ int diagfwd_read_complete(struct diag_request *diag_read_ptr)
 #ifdef CONFIG_DIAG_SDIO_PIPE
 	else if (buf == (void *)driver->usb_buf_mdm_out) {
 		if (machine_is_msm8x60_fusion() ||
-				 machine_is_msm8x60_fusn_ffa()) {
+				 machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			|| machine_is_msm8x60_presto()
+#endif
+		) {
 			driver->read_len_mdm = diag_read_ptr->actual;
 			diagfwd_read_complete_sdio();
 		} else

@@ -87,7 +87,12 @@ static void keychord_event(struct input_handle *handle, unsigned int type,
 	unsigned long flags;
 	int i, got_chord = 0;
 
+//pz1945: fix not detected when pressed VOL_UP and VOL_DOWN together.
+#ifdef CONFIG_PANTECH_PRESTO_BOARD
+	if (type != EV_KEY || code >= KEY_MAX || code == BTN_TOUCH )
+#else /* CONFIG_PANTECH_PRESTO_BOARD */
 	if (type != EV_KEY || code >= KEY_MAX)
+#endif /* CONFIG_PANTECH_PRESTO_BOARD */
 		return;
 
 	spin_lock_irqsave(&kdev->lock, flags);

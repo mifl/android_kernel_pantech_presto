@@ -17,6 +17,20 @@
 #include <linux/spinlock.h>
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/leds-pmic8058.h>
+#include <linux/miscdevice.h>
+#include <linux/fs.h>
+
+//#define DBG_ENABLE
+
+#ifdef DBG_ENABLE
+#define dbg(fmt, args...)   printk("[LED] " fmt, ##args)
+#else
+#define dbg(fmt, args...)
+#endif
+#define dbg_func_in()       dbg("[+] %s\n", __func__)
+#define dbg_func_out()      dbg("[-] %s\n", __func__)
+#define dbg_line()          dbg("[LINE] %d(%s)\n", __LINE__, __func__)
+
 
 #define SSBI_REG_ADDR_DRV_KEYPAD	0x48
 #define PM8058_DRV_KEYPAD_BL_MASK	0xf0
@@ -58,6 +72,8 @@ struct pmic8058_led_data {
 #define PM8058_MAX_LEDS		7
 static struct pmic8058_led_data led_data[PM8058_MAX_LEDS];
 
+static long leds_fops_ioctl(struct file *filp, unsigned int cmd, unsigned long arg);
+
 static void kp_bl_set(struct pmic8058_led_data *led, enum led_brightness value)
 {
 	int rc;
@@ -68,6 +84,7 @@ static void kp_bl_set(struct pmic8058_led_data *led, enum led_brightness value)
 	level = (value << PM8058_DRV_KEYPAD_BL_SHIFT) &
 				 PM8058_DRV_KEYPAD_BL_MASK;
 
+    dbg("[LeD driver][leds-pmic8058.c] %s(value %d)\n ",__func__,value); //JCK 
 	led->reg_kp &= ~PM8058_DRV_KEYPAD_BL_MASK;
 	led->reg_kp |= level;
 	spin_unlock_irqrestore(&led->value_lock, flags);
@@ -80,6 +97,7 @@ static void kp_bl_set(struct pmic8058_led_data *led, enum led_brightness value)
 
 static enum led_brightness kp_bl_get(struct pmic8058_led_data *led)
 {
+    dbg("[LeD driver][leds-pmic8058.c] %s()\n ",__func__); //JCK 
 	if ((led->reg_kp & PM8058_DRV_KEYPAD_BL_MASK) >>
 			 PM8058_DRV_KEYPAD_BL_SHIFT)
 		return LED_FULL;
@@ -93,6 +111,7 @@ static void led_lc_set(struct pmic8058_led_data *led, enum led_brightness value)
 	int rc, offset;
 	u8 level, tmp;
 
+    dbg("[LeD driver][leds-pmic8058.c] %s(value %d)\n ",__func__,value); //JCK 
 	spin_lock_irqsave(&led->value_lock, flags);
 
 	level = (led->brightness << PM8058_DRV_LED_CTRL_SHIFT) &
@@ -194,6 +213,7 @@ int pm8058_set_led_current(enum pmic8058_leds id, unsigned mA)
 	struct pmic8058_led_data *led;
 	int brightness = 0;
 
+    dbg("[LeD driver][leds-pmic8058.c] %s(id %d ,  %dmA)\n ",__func__,id, mA); //JCK 
 	if ((id < PMIC8058_ID_LED_KB_LIGHT) || (id > PMIC8058_ID_FLASH_LED_1)) {
 		pr_err("%s: invalid LED ID (%d) specified\n", __func__, id);
 		return -EINVAL;
@@ -288,6 +308,29 @@ static enum led_brightness pmic8058_led_get(struct led_classdev *led_cdev)
 	return LED_OFF;
 }
 
+static long leds_fops_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+	dbg("leds_fops_ioctl : %d\n",cmd);
+    if ( cmd == 192 ) 
+        cmd =3;
+	pmic8058_led_set(&led_data[PMIC8058_ID_LED_KB_LIGHT].cdev, cmd);
+	kp_bl_set(&led_data[PMIC8058_ID_LED_KB_LIGHT], (int)cmd);
+	return true;
+}
+
+
+static struct file_operations leds_fops = {
+	.owner = THIS_MODULE,
+	.unlocked_ioctl = leds_fops_ioctl,
+};
+
+static struct miscdevice led_event = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "led_fops",
+	.fops = &leds_fops,
+};
+
+
 static int pmic8058_led_probe(struct platform_device *pdev)
 {
 	struct pmic8058_leds_platform_data *pdata = pdev->dev.platform_data;
@@ -373,6 +416,9 @@ static int pmic8058_led_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, led_data);
+
+	misc_register(&led_event);
+    dbg("[LeD driver][leds-pmic8058.c] %s()\n ",__func__); //JCK
 
 	return 0;
 
