@@ -93,7 +93,7 @@
 #include "devices-msm8x60.h"
 #include <mach/cpuidle.h>
 #include "pm.h"
-#include <mach/mpm.h>
+#include "mpm.h"
 #include "spm.h"
 #include "rpm_log.h"
 #include "timer.h"
@@ -3188,16 +3188,16 @@ static void __init msm8x60_init_dsps(void)
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
-/* prim = 800 x 480 x 4(bpp) x 3(pages) */
-#define MSM_FB_PRIM_BUF_SIZE 0x465000
+#define MSM_FB_PRIM_BUF_SIZE \
+		(roundup((800 * 480 * 4), 4096) * 3) /* 4 bpp x 3 pages */
 #else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define MSM_FB_PRIM_BUF_SIZE \
 		(roundup((1024 * 600 * 4), 4096) * 3) /* 4 bpp x 3 pages */
 #endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #else
 #if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
-/* prim = 800 x 480 x 4(bpp) x 2(pages) */
-#define MSM_FB_PRIM_BUF_SIZE 0x2EE000
+#define MSM_FB_PRIM_BUF_SIZE \
+		(roundup((800 * 480 * 4), 4096) * 2) /* 4 bpp x 2 pages */
 #else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define MSM_FB_PRIM_BUF_SIZE \
 		(roundup((1024 * 600 * 4), 4096) * 2) /* 4 bpp x 2 pages */
@@ -3211,7 +3211,7 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_FB_EXT_BUF_SIZE  \
 		(roundup((720 * 576 * 2), 4096) * 2) /* 2 bpp x 2 pages */
 #else
-#define MSM_FB_EXT_BUFT_SIZE	0
+#define MSM_FB_EXT_BUF_SIZE	0
 #endif
 
 /* Note: must be multiple of 4096 */
@@ -9770,7 +9770,6 @@ static int msm_sdcc_cfg_mpm_sdiowakeup(struct device *dev, unsigned mode)
 #endif /* CONFIG_SKY_WLAN */
 #endif
 #endif
-#endif
 
 #define MSM_MPM_PIN_SDC3_DAT1	21
 #define MSM_MPM_PIN_SDC4_DAT1	23
@@ -10446,8 +10445,9 @@ out:
 #undef _GET_REGULATOR
 #endif
 
-//ICS_PATCH30145
-//static int mipi_dsi_panel_power(int on);
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
+static int mipi_dsi_panel_power(int on);
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 
 #define LCDC_NUM_GPIO 28
 #define LCDC_GPIO_START 0
@@ -10475,7 +10475,9 @@ static void lcdc_samsung_panel_power(int on)
 			gpio_free(LCDC_GPIO_START + n);
 	}
 
-//	mipi_dsi_panel_power(0); /* set 8058_ldo0 to LPM */
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
+	mipi_dsi_panel_power(0); /* set 8058_ldo0 to LPM */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 }
 #endif /* CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT */
 
@@ -11162,7 +11164,9 @@ static struct msm_bus_scale_pdata dtv_bus_scale_pdata = {
 
 static struct lcdc_platform_data dtv_pdata = {
 	.bus_scale_table = &dtv_bus_scale_pdata,
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
 	.lcdc_power_save = hdmi_panel_power,
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 };
 
 static struct msm_bus_paths dtv_hdmi_prim_bus_scale_usecases[] = {
@@ -11331,7 +11335,9 @@ int mdp_core_clk_rate_table[] = {
 #endif
 
 static struct msm_panel_common_pdata mdp_pdata = {
-//	.gpio = MDP_VSYNC_GPIO,
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
+	.gpio = MDP_VSYNC_GPIO,
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 #ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY // ?? ICS_PATCH30145 ??
 	.mdp_max_clk = 200000000,
 #else

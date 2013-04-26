@@ -74,7 +74,7 @@ extern void gpio_set_132_trickle_leakeage(void);
 #endif
 
 /*  Idle wakelock to prevent PC between wake up and Vsync */
-struct wake_lock mdp_idle_wakelock;
+//struct wake_lock mdp_idle_wakelock;
 #ifdef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX //(lcd)march 2012.3.19
 static void msm_fb_set_backlight_old(struct msm_fb_data_type *mfd, __u32 bkl_lvl, u32 save);
 #endif /* CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX */
@@ -3706,7 +3706,11 @@ static int msm_fb_ioctl(struct fb_info *info, unsigned int cmd,
 		ret = msmfb_overlay_ioctl_writeback_terminate(info);
 		break;
 #endif
+
+#ifndef CONFIG_F_SKYDISP_LCD_RESET
 	case MSMFB_VSYNC_CTRL:
+#endif /* CONFIG_F_SKYDISP_LCD_RESET */
+
 	case MSMFB_OVERLAY_VSYNC_CTRL:
 		down(&msm_fb_ioctl_ppp_sem);
 		if (mdp_rev >= MDP_REV_40)
