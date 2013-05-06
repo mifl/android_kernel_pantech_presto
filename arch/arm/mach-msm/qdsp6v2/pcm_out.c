@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2009 Google, Inc.
- * Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  * Author: Brian Swetland <swetland@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -383,8 +383,7 @@ static ssize_t pcm_out_write(struct file *file, const char __user *buf,
 	while (count > 0) {
 		rc = wait_event_timeout(pcm->write_wait,
 				(atomic_read(&pcm->out_count) ||
-				atomic_read(&pcm->out_stopped)), 5 * HZ);				
-				//pz1946 debug atomic_read(&pcm->out_stopped)), 1 * HZ);
+				atomic_read(&pcm->out_stopped)), 5 * HZ);
 		if (!rc) {
 			pr_err("%s: wait_event_timeout failed for session %d\n",
 				__func__, pcm->ac->session);

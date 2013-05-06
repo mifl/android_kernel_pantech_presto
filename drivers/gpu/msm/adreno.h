@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -49,12 +49,6 @@
 
 #define ADRENO_NUM_CTX_SWITCH_ALLOWED_BEFORE_DRAW	50
 
-/* One cannot wait forever for the core to idle, so set an upper limit to the
- * amount of time to wait for the core to go idle
- */
-
-#define ADRENO_IDLE_TIMEOUT (20 * 1000)
-
 enum adreno_gpurev {
 	ADRENO_REV_UNKNOWN = 0,
 	ADRENO_REV_A200 = 200,
@@ -84,12 +78,10 @@ struct adreno_device {
 	unsigned int istore_size;
 	unsigned int pix_shader_start;
 	unsigned int ib_check_level;
-	unsigned int fast_hang_detect;
 };
 
 struct adreno_gpudev {
 	/* keeps track of when we need to execute the draw workaround code */
-	unsigned int reg_rbbm_status;
 	int ctx_switches_since_last_draw;
 	int (*ctxt_create)(struct adreno_device *, struct adreno_context *);
 	void (*ctxt_save)(struct adreno_device *, struct adreno_context *);
@@ -97,6 +89,7 @@ struct adreno_gpudev {
 	void (*ctxt_draw_workaround)(struct adreno_device *, struct adreno_context *);
 	irqreturn_t (*irq_handler)(struct adreno_device *);
 	void (*irq_control)(struct adreno_device *, int);
+	unsigned int (*irq_pending)(struct adreno_device *);
 	void * (*snapshot)(struct adreno_device *, void *, int *, int);
 };
 
@@ -132,11 +125,7 @@ extern const unsigned int a220_registers[];
 extern const unsigned int a200_registers_count;
 extern const unsigned int a220_registers_count;
 
-extern unsigned int hang_detect_regs[];
-extern const unsigned int hang_detect_regs_count;
-
-
-int adreno_idle(struct kgsl_device *device);
+int adreno_idle(struct kgsl_device *device, unsigned int timeout);
 void adreno_regread(struct kgsl_device *device, unsigned int offsetwords,
 				unsigned int *value);
 void adreno_regwrite(struct kgsl_device *device, unsigned int offsetwords,
@@ -154,9 +143,6 @@ void *adreno_snapshot(struct kgsl_device *device, void *snapshot, int *remain,
 		int hang);
 
 int adreno_dump_and_recover(struct kgsl_device *device);
-
-unsigned int adreno_hang_detect(struct kgsl_device *device,
-						unsigned int *prev_reg_val);
 
 static inline int adreno_is_a200(struct adreno_device *adreno_dev)
 {
