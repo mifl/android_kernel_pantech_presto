@@ -417,10 +417,10 @@ void __save_regs_and_mmu(struct pt_regs *regs)
 		asm("mrc p15, 0, %0, c1, c0\n" : "=r" (ctrl));
 		save_info.mmu.control      = ctrl;
 	}
-#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
+#endif /* CONFIG_CPU_CP15 */
       save_info.magic_num = LINUX_SAVE_INFO_MAGIC;
 }
-#endif /* CONFIG_CPU_CP15 */
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 void __show_regs(struct pt_regs *regs)
 {
