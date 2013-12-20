@@ -1004,7 +1004,7 @@ static u32 vid_dec_set_meta_buffers(struct video_client_ctx *client_ctx,
 		vcd_meta_buffer->dev_addr_iommu =
 					(u8 *)mapped_buffer_iommu->iova[0];
 	} else {
-		client_ctx->meta_buffer_ion_handle = ion_import_dma_buf(
+		client_ctx->meta_buffer_ion_handle = ion_import_fd(
 					client_ctx->user_ion_client,
 					vcd_meta_buffer->pmem_fd);
 		if (IS_ERR_OR_NULL(client_ctx->meta_buffer_ion_handle)) {
@@ -1060,7 +1060,7 @@ static u32 vid_dec_set_meta_buffers(struct video_client_ctx *client_ctx,
 			vcd_meta_buffer->dev_addr = (u8 *) iova;
 		}
 
-		client_ctx->meta_buffer_iommu_ion_handle = ion_import_dma_buf(
+		client_ctx->meta_buffer_iommu_ion_handle = ion_import_fd(
 					client_ctx->user_ion_client,
 					vcd_meta_buffer->pmem_fd_iommu);
 		if (IS_ERR_OR_NULL(client_ctx->meta_buffer_iommu_ion_handle)) {
