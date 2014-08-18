@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -214,9 +214,9 @@ struct hdmi_disp_mode_list_type {
 
 struct external_common_state_type {
 	boolean hpd_state;
+	boolean pre_suspend_hpd_state;
 	struct kobject *uevent_kobj;
 	uint32 video_resolution;
-	boolean default_res_supported;
 	struct device *dev;
 	struct switch_dev sdev;
 	struct switch_dev audio_sdev;
@@ -235,8 +235,8 @@ struct external_common_state_type {
 	uint8 pt_scan_info;
 	uint8 it_scan_info;
 	uint8 ce_scan_info;
-	uint8 spd_vendor_name[8];
-	uint8 spd_product_description[16];
+	uint8 spd_vendor_name[9];
+	uint8 spd_product_description[17];
 	boolean present_3d;
 	boolean present_hdcp;
 	uint8 audio_data_block[MAX_AUDIO_DATA_BLOCK_SIZE];

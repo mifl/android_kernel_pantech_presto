@@ -34,6 +34,12 @@
 #define DRIVER_VERSION_MAJOR   3
 #define DRIVER_VERSION_MINOR   1
 
+/*Adreno First Wait timeout part 100msec*/
+#define ADRENO_WAIT_FIRST_TIMEOUT_PART 100
+
+/*Adreno Wait timeout part 200msec */
+#define ADRENO_WAIT_TIMEOUT_PART 200
+
 /* Adreno MH arbiter config*/
 #define ADRENO_CFG_MHARB \
 	(0x10 \
@@ -398,7 +404,7 @@ adreno_getchipid(struct kgsl_device *device)
 	if (cpu_is_qsd8x50())
 		patchid = 1;
 	else if (cpu_is_msm8960() &&
-			SOCINFO_VERSION_MAJOR(soc_platform_version) == 3)
+			SOCINFO_VERSION_MAJOR(soc_platform_version) >= 3)
 		patchid = 6;
 
 	chipid |= (minorid << 8) | patchid;
@@ -936,13 +942,8 @@ int adreno_idle(struct kgsl_device *device, unsigned int timeout)
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	struct adreno_ringbuffer *rb = &adreno_dev->ringbuffer;
 	unsigned int rbbm_status;
-	unsigned long wait_timeout =
-		msecs_to_jiffies(adreno_dev->wait_timeout);
 	unsigned long wait_time;
 	unsigned long wait_time_part;
-	unsigned int msecs;
-	unsigned int msecs_first;
-	unsigned int msecs_part;
 
 	kgsl_cffdump_regpoll(device->id, REG_RBBM_STATUS << 2,
 		0x00000000, 0x80000000);
@@ -951,29 +952,29 @@ int adreno_idle(struct kgsl_device *device, unsigned int timeout)
 	 */
 retry:
 	if (rb->flags & KGSL_FLAGS_STARTED) {
-		msecs = adreno_dev->wait_timeout;
-		msecs_first = (msecs <= 100) ? ((msecs + 4) / 5) : 100;
-		msecs_part = (msecs - msecs_first + 3) / 4;
-		wait_time = jiffies + wait_timeout;
-		wait_time_part = jiffies + msecs_to_jiffies(msecs_first);
+		wait_time = jiffies + msecs_to_jiffies(adreno_dev->wait_timeout);
+		/* Keep the first timeout as 100msecs before rewriting
+		 * the WPTR. */
+		wait_time_part = jiffies + msecs_to_jiffies(ADRENO_WAIT_FIRST_TIMEOUT_PART);
 		adreno_poke(device);
 		do {
 			if (time_after(jiffies, wait_time_part)) {
 				adreno_poke(device);
 				wait_time_part = jiffies +
-					msecs_to_jiffies(msecs_part);
+					msecs_to_jiffies(ADRENO_WAIT_TIMEOUT_PART);
 			}
 			GSL_RB_GET_READPTR(rb, &rb->rptr);
 			if (time_after(jiffies, wait_time)) {
 				KGSL_DRV_ERR(device, "rptr: %x, wptr: %x\n",
 					rb->rptr, rb->wptr);
-				goto err;
+				if (rb->rptr != rb->wptr)
+					goto err;
 			}
 		} while (rb->rptr != rb->wptr);
 	}
 
 	/* now, wait for the GPU to finish its operations */
-	wait_time = jiffies + wait_timeout;
+	wait_time = jiffies + msecs_to_jiffies(adreno_dev->wait_timeout);
 	while (time_before(jiffies, wait_time)) {
 		adreno_regread(device, REG_RBBM_STATUS, &rbbm_status);
 		if (rbbm_status == 0x110)
@@ -984,7 +985,7 @@ err:
 	KGSL_DRV_ERR(device, "spun too long waiting for RB to idle\n");
 	if (KGSL_STATE_DUMP_AND_RECOVER != device->state &&
 		!adreno_dump_and_recover(device)) {
-		wait_time = jiffies + wait_timeout;
+		wait_time = jiffies + msecs_to_jiffies(adreno_dev->wait_timeout);
 		goto retry;
 	}
 	return -ETIMEDOUT;
@@ -1147,65 +1148,15 @@ void adreno_regwrite(struct kgsl_device *device, unsigned int offsetwords,
 	__raw_writel(value, reg);
 }
 
-static int adreno_next_event(struct kgsl_device *device,
-	struct kgsl_event *event)
+static unsigned int adreno_check_hw_ts(struct kgsl_device *device,
+						unsigned int timestamp)
 {
-	int status;
+	int status = 0;
 	unsigned int ref_ts, enableflag;
-
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
-
-	status = kgsl_check_timestamp(device, event->timestamp);
-	if (!status) {
-		kgsl_sharedmem_readl(&device->memstore, &enableflag,
-			KGSL_DEVICE_MEMSTORE_OFFSET(ts_cmp_enable));
-		mb();
-
-		if (enableflag) {
-			kgsl_sharedmem_readl(&device->memstore, &ref_ts,
-				KGSL_DEVICE_MEMSTORE_OFFSET(ref_wait_ts));
-			mb();
-			if (timestamp_cmp(ref_ts, event->timestamp) >= 0) {
-				kgsl_sharedmem_writel(&device->memstore,
-				KGSL_DEVICE_MEMSTORE_OFFSET(ref_wait_ts),
-				event->timestamp);
-				wmb();
-			}
-		} else {
-			unsigned int cmds[2];
-			kgsl_sharedmem_writel(&device->memstore,
-				KGSL_DEVICE_MEMSTORE_OFFSET(ref_wait_ts),
-				event->timestamp);
-			enableflag = 1;
-			kgsl_sharedmem_writel(&device->memstore,
-				KGSL_DEVICE_MEMSTORE_OFFSET(ts_cmp_enable),
-				enableflag);
-			wmb();
-			/* submit a dummy packet so that even if all
-			* commands upto timestamp get executed we will still
-			* get an interrupt */
-			cmds[0] = cp_type3_packet(CP_NOP, 1);
-			cmds[1] = 0;
-
-			adreno_ringbuffer_issuecmds(device,
-					adreno_dev->drawctxt_active,
-					KGSL_CMD_FLAGS_NONE, &cmds[0], 2);
-		}
-	}
-	return status;
-}
-
-static int kgsl_check_interrupt_timestamp(struct kgsl_device *device,
-					unsigned int timestamp)
-{
-	int status;
-	unsigned int ref_ts, enableflag;
-
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
 	status = kgsl_check_timestamp(device, timestamp);
 	if (!status) {
-		mutex_lock(&device->mutex);
 		kgsl_sharedmem_readl(&device->memstore, &enableflag,
 			KGSL_DEVICE_MEMSTORE_OFFSET(ts_cmp_enable));
 		mb();
@@ -1213,6 +1164,7 @@ static int kgsl_check_interrupt_timestamp(struct kgsl_device *device,
 		if (enableflag) {
 			kgsl_sharedmem_readl(&device->memstore, &ref_ts,
 				KGSL_DEVICE_MEMSTORE_OFFSET(ref_wait_ts));
+
 			mb();
 			if (timestamp_cmp(ref_ts, timestamp) >= 0) {
 				kgsl_sharedmem_writel(&device->memstore,
@@ -1240,12 +1192,27 @@ static int kgsl_check_interrupt_timestamp(struct kgsl_device *device,
 					adreno_dev->drawctxt_active,
 					KGSL_CMD_FLAGS_NONE, &cmds[0], 2);
 		}
-		mutex_unlock(&device->mutex);
 	}
-
 	return status;
 }
 
+
+static int adreno_next_event(struct kgsl_device *device,
+	struct kgsl_event *event)
+{
+	return adreno_check_hw_ts(device, event->timestamp);
+}
+
+static int adreno_check_interrupt_timestamp(struct kgsl_device *device,
+					unsigned int timestamp)
+{
+	int status = 0;
+	mutex_lock(&device->mutex);
+	status = adreno_check_hw_ts(device, timestamp);
+	mutex_unlock(&device->mutex);
+
+	return status;
+}
 /*
  wait_event_interruptible_timeout checks for the exit condition before
  placing a process in wait q. For conditional interrupts we expect the
@@ -1272,9 +1239,7 @@ static int adreno_waittimestamp(struct kgsl_device *device,
 	static uint io_cnt;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
-	int retries;
-	unsigned int msecs_first;
-	unsigned int msecs_part;
+	unsigned long wait_time;
 
 	/* Don't wait forever, set a max value for now */
 	if (msecs == -1)
@@ -1288,13 +1253,8 @@ static int adreno_waittimestamp(struct kgsl_device *device,
 		goto done;
 	}
 
-	/* Keep the first timeout as 100msecs before rewriting
-	 * the WPTR. Less visible impact if the WPTR has not
-	 * been updated properly.
-	 */
-	msecs_first = (msecs <= 100) ? ((msecs + 4) / 5) : 100;
-	msecs_part = (msecs - msecs_first + 3) / 4;
-	for (retries = 0; retries < 5; retries++) {
+	wait_time = jiffies + msecs_to_jiffies(msecs);
+	do {
 		if (kgsl_check_timestamp(device, timestamp)) {
 			/* if the timestamp happens while we're not
 			 * waiting, there's a chance that an interrupt
@@ -1316,10 +1276,10 @@ static int adreno_waittimestamp(struct kgsl_device *device,
 		 */
 		status = kgsl_wait_event_interruptible_timeout(
 				device->wait_queue,
-				kgsl_check_interrupt_timestamp(device,
+				adreno_check_interrupt_timestamp(device,
 					timestamp),
-				msecs_to_jiffies(retries ?
-					msecs_part : msecs_first), io);
+				msecs_to_jiffies(ADRENO_WAIT_TIMEOUT_PART), io);
+
 		mutex_lock(&device->mutex);
 
 		if (status > 0) {
@@ -1330,8 +1290,9 @@ static int adreno_waittimestamp(struct kgsl_device *device,
 			/*an error occurred*/
 			goto done;
 		}
+
 		/*this wait timed out*/
-	}
+	} while (time_before(jiffies, wait_time));
 
 	/* Check if timestamp has retired here because we may have hit
 	 * recovery which can take some time and cause waiting threads
@@ -1361,11 +1322,23 @@ static unsigned int adreno_readtimestamp(struct kgsl_device *device,
 {
 	unsigned int timestamp = 0;
 
-	if (type == KGSL_TIMESTAMP_CONSUMED)
+	switch (type) {
+	case KGSL_TIMESTAMP_QUEUED: {
+		struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
+		struct adreno_ringbuffer *rb = &adreno_dev->ringbuffer;
+
+		timestamp = rb->timestamp;
+		break;
+	}
+	case KGSL_TIMESTAMP_CONSUMED:
 		adreno_regread(device, REG_CP_TIMESTAMP, &timestamp);
-	else if (type == KGSL_TIMESTAMP_RETIRED)
+		break;
+	case KGSL_TIMESTAMP_RETIRED:
 		kgsl_sharedmem_readl(&device->memstore, &timestamp,
 				 KGSL_DEVICE_MEMSTORE_OFFSET(eoptimestamp));
+		break;
+	}
+
 	rmb();
 
 	return timestamp;

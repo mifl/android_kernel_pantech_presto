@@ -47,6 +47,14 @@
 #define A225_PFP_FW "a225_pfp.fw"
 #define A225_PM4_FW "a225_pm4.fw"
 
+/*
+ * CP DEBUG settings for all cores:
+ * DYNAMIC_CLK_DISABLE [27] - turn off the dynamic clock control
+ * PROG_END_PTR_ENABLE [25] - Allow 128 bit writes to the VBIF
+ */
+
+#define CP_DEBUG_DEFAULT ((1 << 27) | (1 << 25))
+
 static void adreno_ringbuffer_submit(struct adreno_ringbuffer *rb)
 {
 	BUG_ON(rb->wptr == 0);
@@ -241,7 +249,7 @@ static int adreno_ringbuffer_load_pm4_ucode(struct kgsl_device *device)
 	KGSL_DRV_INFO(device, "loading pm4 ucode version: %d\n",
 		adreno_dev->pm4_fw[0]);
 
-	adreno_regwrite(device, REG_CP_DEBUG, 0x02000000);
+	adreno_regwrite(device, REG_CP_DEBUG, CP_DEBUG_DEFAULT);
 	adreno_regwrite(device, REG_CP_ME_RAM_WADDR, 0);
 	for (i = 1; i < adreno_dev->pm4_fw_size; i++)
 		adreno_regwrite(device, REG_CP_ME_RAM_DATA,
@@ -525,6 +533,8 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 	total_sizedwords += !(flags & KGSL_CMD_FLAGS_NO_TS_CMP) ? 10 : 0;
 	/* 2 dwords to store the start of command sequence */
 	total_sizedwords += 2;
+        /* CP_WAIT_FOR_IDLE */
+        total_sizedwords += 2;
 
 	ringcmds = adreno_ringbuffer_allocspace(rb, total_sizedwords);
 	/* GPU may hang during space allocation, if thats the case the current
@@ -563,6 +573,14 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 
 	rb->timestamp++;
 	timestamp = rb->timestamp;
+
+       /* HW Workaround for MMU Page fault
+         * due to memory getting free early before
+         * GPU completes it.
+         */
+        GSL_RB_WRITE(ringcmds, rcmd_gpu, cp_type3_packet(CP_WAIT_FOR_IDLE, 1));
+        GSL_RB_WRITE(ringcmds, rcmd_gpu, 0x00);
+
 
 	/* start-of-pipeline and end-of-pipeline timestamps */
 	GSL_RB_WRITE(ringcmds, rcmd_gpu, cp_type0_packet(REG_CP_TIMESTAMP, 1));
