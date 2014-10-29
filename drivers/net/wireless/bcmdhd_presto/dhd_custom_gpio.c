@@ -42,6 +42,11 @@
 #define WL_ERROR(x) printf x
 #define WL_TRACE(x)
 
+#ifdef CUSTOMER_HW_PT
+struct dhd_info;
+extern int _dhd_set_mac_address(struct dhd_info *dhd,
+	int ifidx, struct ether_addr *addr);
+#endif
 #if defined(CUSTOMER_HW_PT) && !defined(CONFIG_MACH_MAHIMAHI)
 static int dhd_wl_reset_gpio = CONFIG_BCM4329_WL_RESET_GPIO;
 #endif
@@ -324,6 +329,53 @@ dhd_custom_get_mac_address(unsigned char *buf)
 	return ret;
 }
 #endif /* GET_CUSTOM_MAC_ENABLE */
+
+#ifdef CUSTOMER_HW_PT
+int get_mac_address(struct dhd_info *dhd)
+{
+		int ret = 0;
+		char buf[18]      = {0};
+		char panmac_path[] = "/dev/panmac";
+		static struct ether_addr mac;
+		static int custom_mac_applied = 0;
+
+		if ( custom_mac_applied )
+		{
+			memcpy(buf, &mac, sizeof(struct ether_addr));
+			return 0;
+		}
+
+		ret = dhd_read_mac_from_file(panmac_path, &mac);
+
+		if ( ret == 0 )
+		{
+			memcpy(buf, &mac, sizeof(struct ether_addr));
+			custom_mac_applied = 1;
+		}
+		else
+		{
+			int i;
+			char rand_panmac_path[] = "/data/misc/wifi/panmac";
+
+			ret = dhd_read_mac_from_file(rand_panmac_path, &mac);
+			if ( ret != 0 )
+			{
+				mac.octet[0] = 0x00;
+				mac.octet[1] = 0x0f;
+				mac.octet[2] = 0xe4;
+				for ( i = 3; i < ETHER_ADDR_LEN; i++ )
+					get_random_bytes(&mac.octet[i], 1);
+
+				dhd_write_mac_to_file(rand_panmac_path, &mac);
+			}
+			memcpy(buf, &mac, sizeof(struct ether_addr));
+			_dhd_set_mac_address(dhd, 0, &mac);
+			custom_mac_applied = 1;
+			ret = 0;
+		}
+  return ret;
+}  
+#endif
 
 #ifndef CUSTOMER_HW4
 /* Customized Locale table : OPTIONAL feature */

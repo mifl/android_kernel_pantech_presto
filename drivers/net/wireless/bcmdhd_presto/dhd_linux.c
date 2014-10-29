@@ -197,6 +197,10 @@ extern wl_iw_extra_params_t  g_wl_iw_params;
 
 extern int dhd_get_suspend_bcn_li_dtim(dhd_pub_t *dhd);
 
+#ifdef CUSTOMER_HW_PT
+extern int get_mac_address(struct dhd_info *dhd);
+#endif
+
 #ifdef PKT_FILTER_SUPPORT
 extern void dhd_pktfilter_offload_set(dhd_pub_t * dhd, char *arg);
 extern void dhd_pktfilter_offload_enable(dhd_pub_t * dhd, char *arg, int enable, int master_mode);
@@ -3444,6 +3448,10 @@ dhd_bus_start(dhd_pub_t *dhdp)
 	if ((dhd->pub.busstate == DHD_BUS_DATA) && bcmsdh_glom_enabled()) {
 		dhd_txglom_enable(dhdp, TRUE);
 	}
+#endif
+
+#ifdef CUSTOMER_HW_PT
+	get_mac_address(dhd);
 #endif
 
 #ifdef CUSTOMER_HW4
