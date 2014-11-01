@@ -3335,7 +3335,14 @@ static void set_mdp_clocks_for_wuxga(void);
 
 static int msm_fb_detect_panel(const char *name)
 {
-	if (machine_is_msm8x60_fluid()) {
+    if (machine_is_msm8x60_presto()) {
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
+        if (!strncmp(name, LCDC_SAMSUNG_OLED_PANEL_NAME,
+                strnlen(LCDC_SAMSUNG_OLED_PANEL_NAME,
+                    PANEL_NAME_MAX_LEN)))
+            return 0;
+#endif
+	} else if (machine_is_msm8x60_fluid()) {
 		uint32_t soc_platform_version = socinfo_get_platform_version();
 		if (SOCINFO_VERSION_MAJOR(soc_platform_version) < 3) {
 #ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
