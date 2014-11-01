@@ -3628,6 +3628,14 @@ static struct i2c_board_info cyttsp_ffa_info[] __initdata = {
 };
 #endif
 
+#if defined(CONFIG_TOUCHSCREEN_QT602240) || defined(CONFIG_TOUCHSCREEN_PRESTO_WS)
+static struct i2c_board_info __initdata qt602240_i2c_boardinfo[] ={
+    {
+        I2C_BOARD_INFO("qt602240-i2c", 0x4A),
+    },
+};
+#endif /* CONFIG_TOUCHSCREEN_QT602240 || CONFIG_TOUCHSCREEN_PRESTO_WS */
+
 static struct regulator *vreg_tmg200;
 
 #define TS_PEN_IRQ_GPIO 61
@@ -4297,7 +4305,14 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 	/*	ID        a_on pd ss min_uV   max_uV   init_ip */
 	RPM_LDO(PM8058_L0,  0, 1, 0, 1200000, 1200000, LDO150HMIN),
 	RPM_LDO(PM8058_L1,  0, 1, 0, 1200000, 1200000, LDO300HMIN),
+//S 20110908 ssoh Change_AVdd_3.3V
+#if defined(CONFIG_TOUCHSCREEN_QT602240)
+    RPM_LDO(PM8058_L2,  0, 1, 0, 3300000, 3300000, LDO300HMIN),
+#elif (defined(CONFIG_MACH_MSM8X60_PRESTO) && (BOARD_REV > WS10)) // Presto NR CLK_IN TP Test ws20 remove boot err 
+    RPM_LDO(PM8058_L2,  0, 1, 0, 1800000, 1800000, LDO300HMIN), // WS20: XO_OUT_D0 ==> eS310
+#else /* CONFIG_MACH_MSM8X60_PRESTO && BOARD_REV > WS10 */
 	RPM_LDO(PM8058_L2,  0, 1, 0, 1800000, 2600000, LDO300HMIN),
+#endif /* CONFIG_MACH_MSM8X60_PRESTO && BOARD_REV > WS10 */
 	RPM_LDO(PM8058_L3,  0, 1, 0, 1800000, 1800000, LDO150HMIN),
 	RPM_LDO(PM8058_L4,  0, 1, 0, 2850000, 2850000,  LDO50HMIN),
 	RPM_LDO(PM8058_L5,  0, 1, 0, 2850000, 2850000, LDO300HMIN),
@@ -7457,6 +7472,14 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
 		ARRAY_SIZE(cyttsp_ffa_info),
 	},
 #endif
+#if defined(CONFIG_TOUCHSCREEN_QT602240) 
+    {
+        I2C_SURF | I2C_FFA,
+        MSM_GSBI8_QUP_I2C_BUS_ID,
+        qt602240_i2c_boardinfo,
+        ARRAY_SIZE(qt602240_i2c_boardinfo),
+    },
+#endif /* CONFIG_TOUCHSCREEN_QT602240 */
 #ifdef CONFIG_MSM_CAMERA
 #ifndef CONFIG_MSM_CAMERA_V4L2
 	{
