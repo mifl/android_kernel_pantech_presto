@@ -447,6 +447,13 @@ static struct msm_spm_platform_data msm_spm_data[] __initdata = {
 	},
 };
 
+#ifdef CONFIG_INPUT_PANTECH_EARJACK
+static struct platform_device pantech_earjack_device = {
+    .name   = "pantech_earjack",
+    .id     = -1,
+};
+#endif /* CONFIG_INPUT_PANTECH_EARJACK */
+
 /*
  * Consumer specific regulator names:
  *			 regulator name		consumer dev_name
@@ -4346,7 +4353,13 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 	RPM_LDO(PM8058_L5,  0, 1, 0, 2850000, 2850000, LDO300HMIN),
 	RPM_LDO(PM8058_L6,  0, 1, 0, 3000000, 3600000,  LDO50HMIN),
 	RPM_LDO(PM8058_L7,  0, 1, 0, 1800000, 1800000,  LDO50HMIN),
+#if defined(CONFIG_INPUT_PANTECH_EARJACK) && defined(CONFIG_MACH_MSM8X60_PRESTO)
+    RPM_LDO(PM8058_L8,  0, 1, 0, 2700000, 2700000, LDO300HMIN),
+#elif defined(CONFIG_MACH_MSM8X60_PRESTO) && (BOARD_REV <= WS10) // jmlee presto ws10 qtr i2c power is not QC reference	
+    RPM_LDO(PM8058_L8,  0, 1, 0, 1800000, 1800000, LDO300HMIN),
+#else /* CONFIG_MACH_MSM8X60_PRESTO && BOARD_REV <= WS10 */
 	RPM_LDO(PM8058_L8,  0, 1, 0, 2900000, 3050000, LDO300HMIN),
+#endif /* CONFIG_MACH_MSM8X60_PRESTO && BOARD_REV <= WS10 */
 	RPM_LDO(PM8058_L9,  0, 1, 0, 1800000, 1800000, LDO300HMIN),
 	RPM_LDO(PM8058_L10, 0, 1, 0, 2600000, 2600000, LDO300HMIN),
 	RPM_LDO(PM8058_L11, 0, 1, 0, 1500000, 1500000, LDO150HMIN),
@@ -4506,6 +4519,9 @@ static struct platform_device *rumi_sim_devices[] __initdata = {
 	&msm_kgsl_3d0,
 	&msm_kgsl_2d0,
 	&msm_kgsl_2d1,
+#ifdef CONFIG_INPUT_PANTECH_EARJACK
+    &pantech_earjack_device,
+#endif /* CONFIG_INPUT_PANTECH_EARJACK */
 	&lcdc_samsung_panel_device,
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 	&hdmi_msm_device,
@@ -5138,8 +5154,11 @@ static void pmic8058_xoadc_mpp_config(void)
 {
 	int rc, i;
 	struct pm8xxx_mpp_init_info xoadc_mpps[] = {
+#if defined(CONFIG_INPUT_PANTECH_EARJACK)
+#else /* CONFIG_INPUT_PANTECH_EARJACK */
 		PM8058_MPP_INIT(XOADC_MPP_3, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5,
 							AOUT_CTRL_DISABLE),
+#endif /* CONFIG_INPUT_PANTECH_EARJACK */
 		PM8058_MPP_INIT(XOADC_MPP_5, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH9,
 							AOUT_CTRL_DISABLE),
 		PM8058_MPP_INIT(XOADC_MPP_7, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH6,
@@ -5436,6 +5455,9 @@ static struct platform_device *surf_devices[] __initdata = {
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
 #endif
+#ifdef CONFIG_INPUT_PANTECH_EARJACK
+    &pantech_earjack_device,
+#endif /* CONFIG_INPUT_PANTECH_EARJACK */
 	&msm_fb_device,
 	&msm_kgsl_3d0,
 	&msm_kgsl_2d0,
