@@ -1074,7 +1074,11 @@ static int diagchar_cleanup(void)
 #ifdef CONFIG_DIAG_SDIO_PIPE
 void diag_sdio_fn(int type)
 {
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()) {
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+		|| machine_is_msm8x60_presto()
+#endif
+	) {
 		if (type == INIT)
 			diagfwd_sdio_init();
 		else if (type == EXIT)

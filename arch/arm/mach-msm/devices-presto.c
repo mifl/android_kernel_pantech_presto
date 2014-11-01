@@ -2006,8 +2006,13 @@ struct platform_device msm_device_smd = {
 };
 
 static struct msm_watchdog_pdata msm_watchdog_pdata = {
+#ifdef CONFIG_MACH_MSM8X60_PRESTO //pz1945
+    .pet_time  = 20000,
+    .bark_time = 22000,
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
 	.pet_time = 10000,
 	.bark_time = 11000,
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 	.has_secure = true,
 };
 

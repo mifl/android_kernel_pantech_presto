@@ -1063,7 +1063,9 @@ void thermal_zone_device_update(struct thermal_zone_device *tz)
 					printk(KERN_EMERG
 					       "Critical temperature reached (%ld C), shutting down.\n",
 					       temp/1000);
-					orderly_poweroff(true);
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
+					orderly_poweroff(true); // pz1949
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 				}
 			}
 			break;
@@ -1091,7 +1093,9 @@ void thermal_zone_device_update(struct thermal_zone_device *tz)
 				printk(KERN_EMERG
 				"Critical temperature reached (%ld C), \
 					shutting down.\n", temp/1000);
-				orderly_poweroff(true);
+#ifndef CONFIG_MACH_MSM8X60_PRESTO
+				orderly_poweroff(true); // pz1949
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 				}
 			}
 			break;

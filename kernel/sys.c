@@ -314,8 +314,18 @@ void emergency_restart(void)
 }
 EXPORT_SYMBOL_GPL(emergency_restart);
 
+#ifdef CONFIG_PANTECH //20110907 choiseulkee add for fast reboot, PRESTO, AT&T requirment
+int is_forced_reset = 0;
+#endif /* CONFIG_PANTECH */
+
 void kernel_restart_prepare(char *cmd)
 {
+#ifdef CONFIG_PANTECH //20110907 choiseulkee add for fast reboot, PRESTO, AT&T requirment
+    if( (cmd != NULL) && (memcmp( cmd, "forced_reset", sizeof("forced_reset")-1 ) == 0) )
+    {
+        is_forced_reset = 1;
+    }
+#endif /* CONFIG_PANTECH */
 	blocking_notifier_call_chain(&reboot_notifier_list, SYS_RESTART, cmd);
 	system_state = SYSTEM_RESTART;
 	usermodehelper_disable();
