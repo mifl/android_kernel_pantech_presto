@@ -54,7 +54,6 @@
 
 /* Added by YD Park.  To meet BRCM's Bluetooth LPM requirment */
 #define BRCM_H4_LPM_SUPPORT
-//#define BRCM_QUICK_CHECK_MSM8260 // for msm8260
 
 // p12912- NOL
 #if 0
@@ -615,29 +614,6 @@ static int bluepower_write_proc_btwake(struct file *file, const char *buffer,
 		gpio_set_value(bsi->ext_wake, 0);
 	} else if (buf[0] == '1') {
 		gpio_set_value(bsi->ext_wake, 1);
-
-#ifdef BRCM_QUICK_CHECK_MSM8260
-		if (bluesleep_can_sleep()) {
-			/* already asleep, this is an error case */
-			if (test_bit(BT_ASLEEP, &flags)) {
-				//printk(KERN_INFO"already asleep...temp\n");
-				kfree(buf);
-				return count;
-			}
-			
-			if (msm_hs_tx_empty(bsi->uport)) {
-				//printk(KERN_INFO"going to sleep...temp\n");
-				del_timer(&tx_timer);
-				set_bit(BT_ASLEEP, &flags);
-				/*Deactivating UART */
-				hsuart_power(0);
-			} else {
-		  		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL * HZ));
-				kfree(buf);
-				return count;
-			}
-		}
-#endif
 	} else {
 		kfree(buf);
 		return -EINVAL;
