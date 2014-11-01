@@ -93,6 +93,36 @@ static int pm8058_writeb(const struct device *dev, u16 addr, u8 val)
 
 	return msm_ssbi_write(pmic->dev->parent, addr, &val, 1);
 }
+#ifdef CONFIG_SKY_GSBI12_UART_CONSOLE
+static int pm8058_uart_control(const struct device *dev)
+{
+    int		rc;
+    u8		misc;
+    const struct pm8xxx_drvdata *pm8058_drvdata = dev_get_drvdata(dev);
+    const struct pm8058_chip *pmic = pm8058_drvdata->pm_chip_data;
+
+    rc = msm_ssbi_read(pmic->dev->parent, 0x1cc, &misc, 1);
+    if (rc) {
+        pr_err("%s: FAIL ssbi_read(0x%x): rc=%d\n",
+               __func__, 0x1cc, rc);
+        goto get_out;
+    }
+
+    misc &= ~0x60;
+    misc |= 0x60;
+
+    rc = msm_ssbi_write(pmic->dev->parent, 0x1cc, &misc, 1);
+    if (rc) {
+        pr_err("%s: FAIL ssbi_write(0x%x)=0x%x: rc=%d\n",
+               __func__, 0x1cc, misc, rc);
+        goto get_out;
+    }
+
+get_out:
+
+    return rc;
+}
+#endif /* CONFIG_SKY_GSBI12_UART_CONSOLE */
 
 static int pm8058_read_buf(const struct device *dev, u16 addr, u8 *buf,
 								int cnt)
@@ -739,6 +769,11 @@ static int __devinit pm8058_probe(struct platform_device *pdev)
 	if (rc < 0)
 		pr_err("%s: failed to config shutdown on hard reset: %d\n",
 								__func__, rc);
+#ifdef CONFIG_SKY_GSBI12_UART_CONSOLE
+    rc = pm8058_uart_control(pmic->dev);
+    if (rc)
+        pr_err("%s: PMIC uart init fail: %d\n",__func__, rc);
+#endif /* CONFIG_SKY_GSBI12_UART_CONSOLE */
 
 	return 0;
 
