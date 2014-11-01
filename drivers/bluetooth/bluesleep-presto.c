@@ -54,8 +54,6 @@
 #include <net/bluetooth/hci_core.h> /* event notifications */
 #include "hci_uart.h"
 
-//#define DEBUG
-
 #define BT_SLEEP_DBG
 #ifndef BT_SLEEP_DBG
 #define BT_DBG(fmt, arg...)
@@ -156,10 +154,6 @@ static void hsuart_power(int on)
  */
 static inline int bluesleep_can_sleep(void)
 {
-#ifdef DEBUG
-	printk(KERN_INFO"%s: host_wake : %d \n",__func__, gpio_get_value(bsi->host_wake));
-	printk(KERN_INFO"%s: ext_wake : %d \n",__func__, gpio_get_value(bsi->ext_wake));
-#endif
 	/* check if MSM_WAKE_BT_GPIO and BT_WAKE_MSM_GPIO are both deasserted */
 	return gpio_get_value(bsi->ext_wake) &&
 		gpio_get_value(bsi->host_wake) &&
@@ -168,9 +162,6 @@ static inline int bluesleep_can_sleep(void)
 
 void bluesleep_sleep_wakeup(void)
 {
-#ifdef DEBUG
-	printk(KERN_INFO"%s\n",__func__);
-#endif
 	if (test_bit(BT_ASLEEP, &flags)) {
 #ifdef CONFIG_PANTECH_PRESTO_BLUESLEEP
         printk(KERN_INFO"%s : waking up... \n",__func__);
@@ -210,13 +201,10 @@ void bluesleep_sleep_wakeup(void)
  */
 static void bluesleep_sleep_work(struct work_struct *work)
 {
-#ifdef DEBUG
-	printk(KERN_INFO"%s\n",__func__);
-#endif
 	if (bluesleep_can_sleep()) {
 		/* already asleep, this is an error case */
 		if (test_bit(BT_ASLEEP, &flags)) {
-#ifdef DEBUG
+#ifndef CONFIG_PANTECH_PRESTO_BLUESLEEP
 			BT_DBG("already asleep");
 #endif
 			return;
@@ -254,10 +242,6 @@ static void bluesleep_sleep_work(struct work_struct *work)
  */
 static void bluesleep_hostwake_task(unsigned long data)
 {
-#ifdef DEBUG
-	printk(KERN_INFO"%s\n",__func__);
-#endif
-
 #ifndef CONFIG_PANTECH_PRESTO_BLUESLEEP
 	BT_DBG("hostwake line change");
 #endif
@@ -283,9 +267,7 @@ static void bluesleep_hostwake_task(unsigned long data)
 static void bluesleep_outgoing_data(void)
 {
 	unsigned long irq_flags;
-#ifdef DEBUG
-	printk(KERN_INFO"%s\n",__func__);
-#endif
+
 	spin_lock_irqsave(&rw_lock, irq_flags);
 
 	/* log data passing by */
@@ -293,7 +275,8 @@ static void bluesleep_outgoing_data(void)
 
 	/* if the tx side is sleeping... */
 	if (gpio_get_value(bsi->ext_wake)) {
-#ifdef DEBUG
+
+#ifndef CONFIG_PANTECH_PRESTO_BLUESLEEP
 		BT_DBG("tx was sleeping");
 #endif
 		bluesleep_sleep_wakeup();
@@ -315,9 +298,7 @@ static int bluesleep_hci_event(struct notifier_block *this,
 	struct hci_dev *hdev = (struct hci_dev *) data;
 	struct hci_uart *hu;
 	struct uart_state *state;
-#ifdef DEBUG
-	printk(KERN_INFO"%s\n",__func__);
-#endif
+
 	if (!hdev)
 		return NOTIFY_DONE;
 
@@ -349,16 +330,14 @@ static int bluesleep_hci_event(struct notifier_block *this,
 static void bluesleep_tx_timer_expire(unsigned long data)
 {
 	unsigned long irq_flags;
-#ifdef DEBUG
-	printk(KERN_INFO"%s\n",__func__);
-#endif
+
 	spin_lock_irqsave(&rw_lock, irq_flags);
 
 	BT_DBG("Tx timer expired");
 
 	/* were we silent during the last timeout? */
 	if (!test_bit(BT_TXDATA, &flags)) {
-#ifdef DEBUG
+#ifndef CONFIG_PANTECH_PRESTO_BLUESLEEP
 		BT_DBG("Tx has been idle");
 #endif
 #ifndef CONFIG_PANTECH_PRESTO_BLUESLEEP
@@ -366,9 +345,9 @@ static void bluesleep_tx_timer_expire(unsigned long data)
 #endif
 		bluesleep_tx_idle();
 	} else {
-	#ifdef DEBUG
+#ifndef CONFIG_PANTECH_PRESTO_BLUESLEEP
 		BT_DBG("Tx data during last period");
-	#endif
+#endif
 		mod_timer(&tx_timer, jiffies + (TX_TIMER_INTERVAL*HZ));
 
 #ifdef CONFIG_PANTECH_PRESTO_BLUESLEEP
@@ -492,9 +471,6 @@ static void bluesleep_stop(void)
 		return;
 	}
 
-#ifdef DEBUG
-	printk(KERN_INFO"%s\n",__func__);
-#endif
 	/* assert BT_WAKE */
 	gpio_set_value(bsi->ext_wake, 0);
 	del_timer(&tx_timer);
@@ -722,6 +698,7 @@ static int __init bluesleep_probe(struct platform_device *pdev)
 		ret = -ENODEV;
 		goto free_bt_ext_wake;
 	}
+
 #ifdef CONFIG_PANTECH_PRESTO_BLUESLEEP
     bsi->uport= msm_hs_get_bt_uport(0);
     wake_lock_init(&bsi->wake_lock, WAKE_LOCK_SUSPEND, "bluesleep");
