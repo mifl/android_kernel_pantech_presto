@@ -64,4 +64,4 @@ config PANTECH_PRESTO_VIBRATOR_PATCH
 
 config PRESTO_CRT_OFF_ANIMATION
 	bool "Fix to crt off animation"
-	default y
+	default n
