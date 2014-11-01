@@ -164,7 +164,9 @@ retry:
 			      HRTIMER_MODE_REL);
 	}
 	spin_unlock_irqrestore(&vib->lock, flags);
+#ifdef CONFIG_PANTECH_PRESTO_VIBRATOR_PATCH
 	schedule_work(&vib->work);
+#endif /* CONFIG_PANTECH_PRESTO_VIBRATOR_PATCH */
 }
 
 static void pm8xxx_vib_update(struct work_struct *work)
@@ -270,7 +272,9 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 	if (rc < 0)
 		goto err_read_vib;
 
+#ifndef VIBRATOR_PANTECH_PATCH //P12911
 	pm8xxx_vib_enable(&vib->timed_dev, pdata->initial_vibrate_ms);
+#endif /* VIBRATOR_PANTECH_PATCH */
 
 	platform_set_drvdata(pdev, vib);
 
