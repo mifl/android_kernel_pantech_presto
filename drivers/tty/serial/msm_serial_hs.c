@@ -2063,7 +2063,7 @@ static int msm_hs_runtime_resume(struct device *dev)
 						    platform_device, dev);
 	struct msm_hs_port *msm_uport = &q_uart_port[pdev->id];
 
-#if 1
+#ifdef CONFIG_PANTECH_PRESTO_BLUESLEEP
     if(pdev->id == 0) return 0;  // BT uart. p12912-NOL
 #endif
 	
@@ -2077,7 +2077,7 @@ static int msm_hs_runtime_suspend(struct device *dev)
 						    platform_device, dev);
 	struct msm_hs_port *msm_uport = &q_uart_port[pdev->id];
 
-#if 1
+#ifdef CONFIG_PANTECH_PRESTO_BLUESLEEP
     if(pdev->id == 0) return 0;  // BT uart. p12912-NOL
 #endif
 
@@ -2125,7 +2125,7 @@ static struct uart_ops msm_hs_ops = {
 	.request_port = msm_hs_request_port,
 };
 
-#if 1 //BRCM_H4_LPM_SUPPORT
+#ifdef CONFIG_PANTECH_PRESTO_BLUESLEEP
 struct uart_port* msm_hs_get_bt_uport(unsigned int line)
 {
     return &q_uart_port[line].uport;
