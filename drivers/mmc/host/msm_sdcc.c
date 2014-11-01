@@ -1625,14 +1625,20 @@ msmsdcc_irq(int irq, void *dev_id)
 			 * will take care of signaling sdio irq during
 			 * mmc_sdio_resume().
 			 */
-			if (host->sdcc_suspended)
+			if (host->sdcc_suspended) {
 				/*
 				 * This is a wakeup interrupt so hold wakelock
 				 * until SDCC resume is handled.
 				 */
+#if defined (CONFIG_PANTECH_WIFI_MMC)
+                if(strcmp(mmc_hostname(host->mmc),"mmc3"))
+                    wake_lock(&host->sdio_wlock);
+#else /* CONFIG_PANTECH_WIFI_MMC */
 				wake_lock(&host->sdio_wlock);
-			else
+#endif /* CONFIG_PANTECH_WIFI_MMC */
+			} else {
 				mmc_signal_sdio_irq(host->mmc);
+			}
 			ret = 1;
 			break;
 		}
@@ -2340,14 +2346,39 @@ static u32 msmsdcc_setup_pins(struct msmsdcc_host *host, bool enable)
 	return rc;
 }
 
+//ICS_PATCH30145
+#ifdef CONFIG_SKY_MMC
+extern unsigned int msm8x60_sdcc_slot_status(void);
+#endif /* CONFIG_SKY_MMC */
 static u32 msmsdcc_setup_pwr(struct msmsdcc_host *host, struct mmc_ios *ios)
 {
 	u32 pwr = 0;
 	int ret = 0;
 	struct mmc_host *mmc = host->mmc;
+#ifdef CONFIG_SKY_MMC
+    unsigned int slot_status;
+#endif /* CONFIG_SKY_MMC */
 
+#ifdef CONFIG_SKY_MMC
+    if(host->plat->translate_vdd && !host->sdio_gpio_lpm){
+        if(host->pdev_id == 3 && ios->power_mode == MMC_POWER_OFF){
+            slot_status = msm8x60_sdcc_slot_status();
+            if(mmc->bus_ops != NULL && slot_status){
+                ret = host->plat->translate_vdd(mmc_dev(mmc), 1); /* always on sdcc power */
+            } else {
+                ret = host->plat->translate_vdd(mmc_dev(mmc), ios->vdd);
+                /* case sdcc_inserted & normal status */
+                if(!mmc->bus_ops && slot_status) 
+                    msleep(500);
+            }
+        } else {
+            ret = host->plat->translate_vdd(mmc_dev(mmc), ios->vdd);
+        }
+    }
+#else /* CONFIG_SKY_MMC */
 	if (host->plat->translate_vdd && !host->sdio_gpio_lpm)
 		ret = host->plat->translate_vdd(mmc_dev(mmc), ios->vdd);
+#endif /* CONFIG_SKY_MMC */
 	else if (!host->plat->translate_vdd && !host->sdio_gpio_lpm)
 		ret = msmsdcc_setup_vreg(host, !!ios->vdd);
 
@@ -4811,6 +4842,17 @@ msmsdcc_probe(struct platform_device *pdev)
 		}
 	} else if (plat->register_status_notify) {
 		plat->register_status_notify(msmsdcc_status_notify_cb, host);
+#ifdef CONFIG_SKY_WLAN_MMC
+        if(!strcmp(mmc_hostname(mmc),"mmc3"))
+        {
+            mmc->pm_flags |= MMC_PM_IGNORE_PM_NOTIFY;
+        }
+#elif defined (CONFIG_PANTECH_WIFI_MMC)	
+        if(!strcmp(mmc_hostname(mmc),"mmc3"))
+        {
+            mmc->pm_flags |= MMC_PM_IGNORE_PM_NOTIFY;	
+        }
+#endif /* CONFIG_SKY_WLAN_MMC */
 	} else if (!plat->status)
 		pr_err("%s: No card detect facilities available\n",
 		       mmc_hostname(mmc));
