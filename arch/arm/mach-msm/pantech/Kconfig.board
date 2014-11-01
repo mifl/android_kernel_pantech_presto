@@ -84,6 +84,42 @@ config AVOID_COMPILE_ERRORS
 config BUG_FIX_LCD_YUV_REVERSE
 	bool
 
+config F_SKYDISP_QBUG_FIX_BACKLIGHT
+	bool
+
+config F_SKYDISP_BOOT_LOGO_IN_KERNEL
+	bool
+
+config F_SKYDISP_LCD_RESET
+	bool
+
+config F_SKYDISP_LCD_FORCE_ONOFF
+	bool
+
+config F_SKYDISP_QBUG_FIX_MIPI_ERROR
+	bool
+
+config F_SKYDISP_FRAMEBUFFER_32
+	bool
+
+config F_SKYDISP_NO_CURSOR_IN_BOOT
+	bool
+
+config F_SKYDISP_HDMI_OPTION
+	bool
+
+config F_SKYDISP_USE_ASHMEM
+	bool
+
+config F_SKYDISP_FIX_OVERLAY_FLICKER
+	bool
+
+config F_SKYDISP_BEAM_ON_BUG_FIX
+	bool
+
+config F_SKYDISP_ICS_MSM_FB_ALIGNED_4K_PAGE_BOUNDARY
+	bool
+
 config FEATURE_SKY_PDL_DLOAD
 	bool
 

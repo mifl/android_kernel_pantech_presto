@@ -4252,3 +4252,14 @@ int mdp4_overlay_reset()
 	memset(&perf_current, 0, sizeof(perf_current));
 	return 0;
 }
+
+#if defined(CONFIG_PANTECH_ERR_CRASH_LOGGING)
+void force_mdp4_overlay_unset(void)
+{
+    mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+    outpdw(MDP_BASE + 0x10100, 0x100); /* MDP_LAYERMIXER_IN_CFG */
+    outpdw(MDP_BASE + 0x18000, 0x11/* bits */); /* MDP_OVERLAY_REG_FLUSH */
+    mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
+}
+EXPORT_SYMBOL(force_mdp4_overlay_unset);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */

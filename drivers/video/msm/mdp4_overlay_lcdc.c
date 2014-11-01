@@ -504,6 +504,10 @@ void mdp4_lcdc_base_swap(int cndx, struct mdp4_overlay_pipe *pipe)
 	vctrl->base_pipe = pipe;
 }
 
+#ifdef CONFIG_SKY_CHARGING
+extern unsigned int sky_charging_status(void);
+static bool only_once = true;
+#endif /* CONFIG_SKY_CHARGING */
 int mdp4_lcdc_on(struct platform_device *pdev)
 {
 	int lcdc_width;
@@ -691,7 +695,11 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 	hsync_polarity = 0;
 	vsync_polarity = 0;
 #endif
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto
+    data_en_polarity = 1;
+#else /* QCOM Original */
 	data_en_polarity = 0;
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 
 	ctrl_polarity =
 	    (data_en_polarity << 2) | (vsync_polarity << 1) | (hsync_polarity);
@@ -713,7 +721,18 @@ int mdp4_lcdc_on(struct platform_device *pdev)
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
 	mdp_histogram_ctrl_all(TRUE);
+#ifdef CONFIG_SKY_CHARGING
+    ret = panel_next_on(pdev);
+    if (ret == 0) {
+        //hyuki add 30145 source 
+        if(sky_charging_status() || only_once ) {
+            only_once = false;
+            mdp4_overlay_lcdc_start();
+        }
+    }
+#else /* QCOM Original */
 	mdp4_overlay_lcdc_start();
+#endif /* CONFIG_SKY_CHARGING */
 	mutex_unlock(&mfd->dma->ov_mutex);
 
 	return ret;

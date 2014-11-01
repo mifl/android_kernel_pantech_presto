@@ -134,9 +134,15 @@
 #define MDM2AP_SYNC 129
 
 #define GPIO_ETHERNET_RESET_N_DRAGON	30
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto  // p13777 kej 110623
+#define LCDC_SPI_GPIO_CLK				40//73
+#define LCDC_SPI_GPIO_CS				33//72
+#define LCDC_SPI_GPIO_MOSI				39//70
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define LCDC_SPI_GPIO_CLK				73
 #define LCDC_SPI_GPIO_CS				72
 #define LCDC_SPI_GPIO_MOSI				70
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define LCDC_AUO_PANEL_NAME				"lcdc_auo_wvga"
 #define LCDC_SAMSUNG_OLED_PANEL_NAME	"lcdc_samsung_oled"
 #define LCDC_SAMSUNG_WSVGA_PANEL_NAME	"lcdc_samsung_wsvga"
@@ -3144,11 +3150,21 @@ static void __init msm8x60_init_dsps(void)
 #endif /* CONFIG_MSM_DSPS */
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+#define MSM_FB_PRIM_BUF_SIZE \
+        (roundup((800 * 480 * 4), 4096) * 3) /* 4 bpp x 3 pages */
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define MSM_FB_PRIM_BUF_SIZE \
 		(roundup((1024 * 600 * 4), 4096) * 3) /* 4 bpp x 3 pages */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #else
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+#define MSM_FB_PRIM_BUF_SIZE \
+        (roundup((800 * 480 * 4), 4096) * 2) /* 4 bpp x 2 pages */
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define MSM_FB_PRIM_BUF_SIZE \
 		(roundup((1024 * 600 * 4), 4096) * 2) /* 4 bpp x 2 pages */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #endif
 
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
@@ -3165,7 +3181,13 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE + \
 				MSM_FB_DSUB_PMEM_ADDER, 4096)
 
+#ifndef CONFIG_F_SKYDISP_USE_ASHMEM
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+#define MSM_PMEM_SF_SIZE 0x2000000 /* 32 Mbytes */
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define MSM_PMEM_SF_SIZE 0x4000000 /* 64 Mbytes */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+#endif /* CONFIG_F_SKYDISP_USE_ASHMEM */
 #define MSM_HDMI_PRIM_PMEM_SF_SIZE 0x4000000 /* 64 Mbytes */
 
 #ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY
@@ -3175,13 +3197,21 @@ unsigned char hdmi_is_primary;
 #endif
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((480 * 800 * 3 * 2), 4096)
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1376 * 768 * 3 * 2), 4096)
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
 
 #ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+#define MSM_FB_OVERLAY1_WRITEBACK_SIZE roundup((480 * 800 * 3 * 2), 4096)
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #else
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
@@ -3495,19 +3525,71 @@ static int lcdc_spi_gpio_array_num[] = {
 
 static uint32_t lcdc_spi_gpio_config_data[] = {
 	GPIO_CFG(LCDC_SPI_GPIO_CLK, 0,
-			GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+			GPIO_CFG_OUTPUT,GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 	GPIO_CFG(LCDC_SPI_GPIO_CS, 0,
 			GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 	GPIO_CFG(LCDC_SPI_GPIO_MOSI, 0,
-			GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+			GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 };
 
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // p13777 kej 110623
+static uint32_t lcdc_gpio_config_data[] = {
+    GPIO_CFG(0, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_pclk" },
+    GPIO_CFG(1, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_hsync" },
+    GPIO_CFG(2, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_vsync" },
+    GPIO_CFG(3, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_en" },
+
+    GPIO_CFG(4, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red7" },
+    GPIO_CFG(5, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red6" },
+    GPIO_CFG(6, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red5" },
+    GPIO_CFG(7, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red4" },
+    GPIO_CFG(8, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red3" },
+    GPIO_CFG(9, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red2" },
+    GPIO_CFG(10, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red1" },
+    GPIO_CFG(11, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_red0" },
+
+    GPIO_CFG(12, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn7" },
+    GPIO_CFG(13, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn6" },
+    GPIO_CFG(14, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn5" },
+    GPIO_CFG(15, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn4" },
+    GPIO_CFG(16, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn3" },
+    GPIO_CFG(17, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn2" },
+    GPIO_CFG(18, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn1" },
+    GPIO_CFG(19, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_grn0" },
+
+    GPIO_CFG(20, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu7" },
+    GPIO_CFG(21, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu6" },
+    GPIO_CFG(22, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu5" },
+    GPIO_CFG(23, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu4" },
+    GPIO_CFG(24, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu3" },
+    GPIO_CFG(25, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu2" },
+    GPIO_CFG(26, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu1" },
+    GPIO_CFG(27, 1, GPIO_CFG_OUTPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"lcdc_blu0" },
+};
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)   // p13777 kej 110623
+static void lcdc_config_spi_gpios(int enable)
+{
+	int n;
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+    int m;
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+	for (n = 0; n < ARRAY_SIZE(lcdc_spi_gpio_config_data); ++n)
+		gpio_tlmm_config(lcdc_spi_gpio_config_data[n], 0);
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto
+    for (m = 0; m < ARRAY_SIZE(lcdc_gpio_config_data); ++m)
+        gpio_tlmm_config(lcdc_gpio_config_data[m], 0);
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+}
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 static void lcdc_config_spi_gpios(int enable)
 {
 	int n;
 	for (n = 0; n < ARRAY_SIZE(lcdc_spi_gpio_config_data); ++n)
 		gpio_tlmm_config(lcdc_spi_gpio_config_data[n], 0);
 }
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #endif
 
 #ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
@@ -6738,6 +6820,7 @@ static int pm8058_gpios_init(void)
 				.inv_int_pol	= 0,
 			}
 		},
+#endif /* CONFIG_SKY_GSBI12_UART_CONSOLE */
 	};
 
 #if defined(CONFIG_TOUCHDISC_VTD518_SHINETSU) || \
@@ -9789,19 +9872,31 @@ static void setup_display_power(void)
 			gpio_set_value_cansleep(GPIO_LVDS_SHUTDOWN_N, 0);
 			gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
 			if (machine_is_msm8x60_ffa() ||
-			    machine_is_msm8x60_fusn_ffa())
+			    machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			    || machine_is_msm8x60_presto()
+#endif
+				)
 				gpio_set_value_cansleep(GPIO_DONGLE_PWR_EN, 1);
 		} else {
 			dsub_regulator(0);
 			gpio_set_value_cansleep(GPIO_LVDS_SHUTDOWN_N, 1);
 			gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 1);
 			if (machine_is_msm8x60_ffa() ||
-			    machine_is_msm8x60_fusn_ffa())
+			    machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			    || machine_is_msm8x60_presto()
+#endif
+				)
 				gpio_set_value_cansleep(GPIO_DONGLE_PWR_EN, 0);
 		}
 	else {
 		dsub_regulator(0);
-		if (machine_is_msm8x60_ffa() || machine_is_msm8x60_fusn_ffa())
+		if (machine_is_msm8x60_ffa() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			    || machine_is_msm8x60_presto()
+#endif
+		)
 			gpio_set_value_cansleep(GPIO_DONGLE_PWR_EN, 0);
 		/* BACKLIGHT */
 		gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
@@ -9823,13 +9918,106 @@ static void setup_display_power(void)
 
 #define GPIO_RESX_N (GPIO_EXPANDER_GPIO_BASE + 2)
 
+#if 0//def CONFIG_SKY_CHARGING
+extern unsigned int sky_charging_status(void);
+#endif
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)    // p13777 kej 110623
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
+static int display_common_power(int on)
+{
+    static struct regulator *reg_8058_l3;
+    static struct regulator *reg_8058_l11;
+    static int prev_on;
+    int rc;
+
+    if (on == prev_on)
+        return 0;
+
+    if (!reg_8058_l3)
+        _GET_REGULATOR(reg_8058_l3, "8058_l3");
+    if (!reg_8058_l11)
+        _GET_REGULATOR(reg_8058_l11, "8058_l11");
+
+    if (on) {
+#if 0//def CONFIG_SKY_CHARGING
+        if (sky_charging_status())
+        {			
+            rc = regulator_set_voltage(reg_8058_l17, 3300000, 3300000);
+            if (!rc)
+                rc = regulator_enable(reg_8058_l17);
+            if (rc) {
+                pr_err("'%s' regulator enable failed, rc=%d\n",
+                    "8058_l17", rc);
+                return rc;
+            }
+        }
+#endif
+
+        rc = regulator_set_voltage(reg_8058_l11, 1800000, 1800000);
+        if (!rc)
+            rc = regulator_enable(reg_8058_l11);
+        if (rc) {
+            pr_err("'%s' regulator enable failed, rc=%d\n",
+                "8058_l11", rc);
+            return rc;
+        }
+
+        rc = regulator_set_voltage(reg_8058_l3, 3000000, 3000000);
+        if (!rc)
+            rc = regulator_enable(reg_8058_l3);
+        if (rc) {
+            pr_err("'%s' regulator enable failed, rc=%d\n",
+                "8058_l3", rc);
+            return rc;
+        }
+
+        pr_info("%s(on): success\n", __func__);
+    }
+    else 
+    {
+        rc = regulator_disable(reg_8058_l3);
+        if (rc)
+            pr_warning("'%s' regulator disable failed, rc=%d\n",
+                "reg_8058_l3", rc);
+
+#if 0 //def CONFIG_SKY_CHARGING
+        if (sky_charging_status())
+        {				
+            rc = regulator_disable(reg_8058_l11);
+            if (rc)
+                pr_warning("'%s' regulator disable failed, rc=%d\n",
+                    "reg_8058_l11", rc);
+
+            rc = regulator_disable(reg_8058_l17);
+            if (rc)
+                pr_warning("'%s' regulator disable failed, rc=%d\n",
+                    "reg_8058_l17", rc);
+
+            msleep(20);
+            pr_info(" [sky_charging_status]  \n");		
+        }
+#endif
+        pr_info("%s(off): success\n", __func__);
+    }
+
+    prev_on = on;
+
+    return 0;
+}
+#endif /* CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT */
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
 static void display_common_power(int on)
 {
 	int rc;
 	static struct regulator *display_reg;
 
 	if (machine_is_msm8x60_surf() || machine_is_msm8x60_ffa() ||
-	    machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()) {
+	    machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+	    || machine_is_msm8x60_presto()
+#endif
+		) {
 		if (on) {
 			/* LVDS */
 			_GET_REGULATOR(display_reg, "8901_l2");
@@ -9861,7 +10049,11 @@ static void display_common_power(int on)
 			}
 
 			if (machine_is_msm8x60_ffa() ||
-			    machine_is_msm8x60_fusn_ffa()) {
+			    machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			    || machine_is_msm8x60_presto()
+#endif
+				) {
 				rc = gpio_request(GPIO_DONGLE_PWR_EN,
 						  "DONGLE_PWR_EN");
 				if (rc) {
@@ -9875,7 +10067,11 @@ static void display_common_power(int on)
 			gpio_direction_output(GPIO_LVDS_SHUTDOWN_N, 0);
 			gpio_direction_output(GPIO_BACKLIGHT_EN, 0);
 			if (machine_is_msm8x60_ffa() ||
-			    machine_is_msm8x60_fusn_ffa())
+			    machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			    || machine_is_msm8x60_presto()
+#endif
+			    )
 				gpio_direction_output(GPIO_DONGLE_PWR_EN, 0);
 			mdelay(20);
 			display_power_on = 1;
@@ -9886,7 +10082,11 @@ static void display_common_power(int on)
 				setup_display_power();
 				mdelay(20);
 				if (machine_is_msm8x60_ffa() ||
-				    machine_is_msm8x60_fusn_ffa())
+				    machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+				    || machine_is_msm8x60_presto()
+#endif
+					)
 					gpio_free(GPIO_DONGLE_PWR_EN);
 				goto out4;
 			}
@@ -10031,14 +10231,19 @@ out:
 	regulator_put(display_reg);
 	display_reg = NULL;
 }
+#endif /* CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #undef _GET_REGULATOR
 #endif
 
+#ifdef CONFIG_FB_MSM_MIPI_DSI
 static int mipi_dsi_panel_power(int on);
+#endif /* CONFIG_FB_MSM_MIPI_DSI */
 
 #define LCDC_NUM_GPIO 28
 #define LCDC_GPIO_START 0
 
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
 static void lcdc_samsung_panel_power(int on)
 {
 	int n, ret = 0;
@@ -10060,9 +10265,26 @@ static void lcdc_samsung_panel_power(int on)
 		for (n--; n >= 0; n--)
 			gpio_free(LCDC_GPIO_START + n);
 	}
-
+#ifdef CONFIG_FB_MSM_MIPI_DSI
 	mipi_dsi_panel_power(0); /* set 8058_ldo0 to LPM */
+#endif /* CONFIG_FB_MSM_MIPI_DSI */
 }
+#endif /* CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT */
+
+//pz1946 20111002 leakeage current recover
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+void gpio_set_132_trickle_leakeage(void)
+{
+    int rc = 0;
+
+    rc = gpio_tlmm_config(GPIO_CFG(132, 0, GPIO_CFG_OUTPUT,	GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),GPIO_CFG_ENABLE);
+    if (!rc) {
+        gpio_set_value_cansleep(132,1);
+        mdelay(200);
+        gpio_set_value_cansleep(132,0);
+    }
+}
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
 
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 #define _GET_REGULATOR(var, name) do {				\
@@ -10263,6 +10485,7 @@ static int hdmi_panel_power(int on)
 
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
 
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
 static int lcdc_panel_power(int on)
 {
 	int flag_on = !!on;
@@ -10277,6 +10500,7 @@ static int lcdc_panel_power(int on)
 
 	return 0;
 }
+#endif /* CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT */
 
 #ifdef CONFIG_MSM_BUS_SCALING
 
@@ -10681,7 +10905,9 @@ static struct msm_bus_scale_pdata dtv_bus_scale_pdata = {
 
 static struct lcdc_platform_data dtv_pdata = {
 	.bus_scale_table = &dtv_bus_scale_pdata,
+#ifdef CONFIG_FB_MSM_TVOUT
 	.lcdc_power_save = hdmi_panel_power,
+#endif /* CONFIG_FB_MSM_TVOUT */
 };
 
 static struct msm_bus_paths dtv_hdmi_prim_bus_scale_usecases[] = {
@@ -10707,11 +10933,14 @@ static struct lcdc_platform_data dtv_hdmi_prim_pdata = {
 #endif
 
 
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
 static struct lcdc_platform_data lcdc_pdata = {
 	.lcdc_power_save   = lcdc_panel_power,
 };
+#endif /* CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT */
 
 
+#ifdef CONFIG_FB_MSM_MIPI_DSI
 #define MDP_VSYNC_GPIO			28
 
 /*
@@ -10772,6 +11001,7 @@ static struct mipi_dsi_platform_data mipi_dsi_pdata = {
 	.vsync_gpio = MDP_VSYNC_GPIO,
 	.dsi_power_save   = mipi_dsi_panel_power,
 };
+#endif /* CONFIG_FB_MSM_MIPI_DSI */
 
 #ifdef CONFIG_FB_MSM_TVOUT
 static struct regulator *reg_8058_l13;
@@ -10819,8 +11049,14 @@ static int atv_dac_power(int on)
 #endif
 
 static struct msm_panel_common_pdata mdp_pdata = {
+#ifdef CONFIG_FB_MSM_MIPI_DSI
 	.gpio = MDP_VSYNC_GPIO,
+#endif /* CONFIG_FB_MSM_MIPI_DSI */
+#ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY // ?? ICS_PATCH30145 ??
 	.mdp_max_clk = 200000000,
+#else /* CONFIG_FB_MSM_HDMI_AS_PRIMARY */
+    .mdp_max_clk = 59080000,
+#endif /* CONFIG_FB_MSM_HDMI_AS_PRIMARY */
 	.mdp_max_bw = 2000000000,
 	.mdp_bw_ab_factor = 115,
 	.mdp_bw_ib_factor = 150,
@@ -10923,8 +11159,13 @@ static void __init msm_fb_add_devices(void)
 	else
 		msm_fb_register_device("mdp", &mdp_pdata);
 
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT
 	msm_fb_register_device("lcdc", &lcdc_pdata);
+    display_common_power(1);//kkcho
+#endif /* CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT */
+#ifdef CONFIG_FB_MSM_MIPI_DSI
 	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
+#endif /* CONFIG_FB_MSM_MIPI_DSI */
 #ifdef CONFIG_MSM_BUS_SCALING
 	if (hdmi_is_primary)
 		msm_fb_register_device("dtv", &dtv_hdmi_prim_pdata);

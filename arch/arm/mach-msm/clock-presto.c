@@ -2625,6 +2625,7 @@ static struct rcg_clk mdp_vsync_clk = {
 	}
 static struct clk_freq_tbl clk_tbl_pixel_mdp[] = {
 	F_PIXEL_MDP(        0, gnd,  1,   0,    0),
+	F_PIXEL_MDP( 24000000, pll8, 2,   1,    8), //(clock)march 2012.3.14
 	F_PIXEL_MDP( 25600000, pll8, 3,   1,    5),
 	F_PIXEL_MDP( 42667000, pll8, 1,   1,    9),
 	F_PIXEL_MDP( 43192000, pll8, 1,  64,  569),

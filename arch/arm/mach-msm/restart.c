@@ -34,6 +34,9 @@
 #ifdef CONFIG_PANTECH // FEATURE_SKY_PWR_ONOFF_REASON_CNT
 #include "sky_sys_reset.h"
 #endif /* CONFIG_PANTECH */
+#ifdef CONFIG_MACH_MSM8X60_PRESTO  //ls4 p13156 lks because of oled reset
+#include <mach/gpio.h>
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 #include <mach/scm.h>
 #include "msm_watchdog.h"
 #include "timer.h"
@@ -148,6 +151,9 @@ static void __msm_power_off(int lower_pshold)
     writel(0x00, restart_reason+4);
 #endif
 #endif /* CONFIG_SKY_CHARGING */
+#ifdef CONFIG_MACH_MSM8X60_PRESTO  //ls4 p13156 lks because of oled reset
+    gpio_set_value(157 , 0);
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 	printk(KERN_CRIT "Powering off the SoC\n");
 #ifdef CONFIG_MSM_DLOAD_MODE
 	set_dload_mode(0);
@@ -328,6 +334,10 @@ void arch_reset(char mode, const char *cmd)
 		pr_notice("PS_HOLD didn't work, falling back to watchdog\n");
 	}
 
+#ifdef CONFIG_MACH_MSM8X60_PRESTO   //ls4 p13156 lks because of oled reset 
+// LCD 한번 리셋해 주기 위해 리셋 안 해주면 reset 후 화면이 깨어지는 경우가 있음.
+    gpio_set_value(157 , 0);
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 	__raw_writel(1, msm_tmr0_base + WDT0_RST);
 	__raw_writel(5*0x31F3, msm_tmr0_base + WDT0_BARK_TIME);
 	__raw_writel(0x31F3, msm_tmr0_base + WDT0_BITE_TIME);
