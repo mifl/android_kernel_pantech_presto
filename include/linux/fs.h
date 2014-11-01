@@ -2191,6 +2191,9 @@ extern int generic_write_sync(struct file *file, loff_t pos, loff_t count);
 extern void sync_supers(void);
 extern void emergency_sync(void);
 extern void emergency_remount(void);
+#ifdef CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+extern void emergency_remount_synchronous(void);
+#endif /* CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET */
 #ifdef CONFIG_BLOCK
 extern sector_t bmap(struct inode *, sector_t);
 #endif

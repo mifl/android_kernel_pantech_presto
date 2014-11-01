@@ -24,6 +24,38 @@ config PANTECH_ATNT
 config PANTECH_QUANTINA_BOARD
 	bool "PANTECH_QUANTINA_BOARD Configuration"
 
+config PANTECH_ERR_CRASH_LOGGING
+	bool "PANTECH_ERR_CRASH_LOGGING Configuration"
+
+config PANTECH_PWR_ONOFF_REASON_CNT
+	bool "PANTECH_PWR_ONOFF_REASON_CNT Configuration"
+
+config SW_RESET
+	bool "SW_RESET Configuration"
+	depends on PANTECH_ERR_CRASH_LOGGING
+	depends on PANTECH_PWR_ONOFF_REASON_CNT
+
+config PANTECH_WDOG_WORKAROUND
+	bool "PANTECH_WDOG_WORKAROUND Configuration"
+	depends on SW_RESET
+
+config PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+	bool "SW_RESET Configuration"
+	help
+	  Add 4 new commands to the reboot system call, that do the same thing as the
+	  RESTART, HALT, POWER_OFF, and RESTART2 commands, but also remount writable
+	  filesystems as read-only just before doing what the command normally does.
+	  Now that Android is using EXT4, and since we don't have a standard init
+	  setup to unmount filesystems before rebooting, this allows the system to
+	  reboot with clean filesystems, and also improves boot time as the journal
+	  does not need to be replayed when mounting the filesystem.
+
+config PANTECH_KERNEL_FS_FIX
+	bool "The patch of EXT4 Jounaling problem"
+	default n
+	help
+	  Patch kernel source.
+
 config AVOID_COMPILE_ERRORS
 	bool "Patch to avoid kernel compile errors"
 	default n
