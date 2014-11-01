@@ -112,6 +112,11 @@
 #endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 
 #define MSM_SHARED_RAM_PHYS 0x40000000
+
+#ifdef CONFIG_INPUT_SENSOR
+#include "msm8x60-sky-sensor.h"
+#endif /* CONFIG_INPUT_SENSOR */
+
 #define MDM2AP_SYNC 129
 
 #define GPIO_ETHERNET_RESET_N_DRAGON	30
@@ -1032,6 +1037,77 @@ static struct platform_device isp1763_device = {
 	}
 };
 #endif
+
+#if defined(CONFIG_MACH_MSM8X60_PRESTO)
+static void sensors_power_up(void)
+{
+    struct regulator *vdd;
+#if (BOARD_REV >= TP10)	
+    struct regulator *vreg_l15;
+#endif	
+    struct regulator *vldgc;
+    int rc;
+
+    vdd = regulator_get(NULL, "8058_l10");
+    if(IS_ERR(vdd)) {
+        rc = PTR_ERR(vdd);
+        printk(KERN_ERR "<L10> %s: regulator get of failed (%d)\n", __func__, rc);
+    }
+    else {
+        rc = regulator_set_voltage(vdd, 3000000, 3000000);
+        if (rc) {
+            printk(KERN_ERR "<L10> %s: vreg set level failed (%d)\n", __func__, rc);
+        }
+        else {
+            rc = regulator_enable(vdd);
+            if (rc) {
+                printk(KERN_ERR "<L10> %s: vreg enable failed (%d)\n",__func__, rc);
+            }
+            else{
+                printk("<L10> %s OK\n", __func__);
+            }
+        }
+    }
+
+    vldgc = regulator_get(NULL, "8058_lvs1");
+    if(IS_ERR(vldgc)) {
+        rc = PTR_ERR(vldgc);
+        printk(KERN_ERR "<LVS1> %s: regulator get of failed (%d)\n", __func__, rc);
+    }
+    rc = regulator_enable(vldgc);
+    if (rc) {
+        printk(KERN_ERR "<LVS1> %s: vreg enable failed (%d)\n",__func__, rc);
+    }
+    else {
+        regulator_put(vldgc);
+        printk(KERN_ERR "<LVS1> Power up OK\n");
+    }
+
+#if (BOARD_REV >= TP10)
+    // APDS9190 Power up
+    vreg_l15 = regulator_get(NULL, "8058_l15");
+    if(IS_ERR(vreg_l15)) {
+        rc = PTR_ERR(vreg_l15);
+        printk(KERN_ERR "<L15> %s: regulator get of failed (%d)\n", __func__, rc);
+    }
+    else {
+        rc = regulator_set_voltage(vreg_l15, 3000000, 3000000);
+        if (rc) {
+            printk(KERN_ERR "<L15> %s: vreg set level failed (%d)\n", __func__, rc);
+        }
+        else {
+            rc = regulator_enable(vreg_l15);
+            if (rc) {
+                printk(KERN_ERR "<L15> %s: vreg enable failed (%d)\n",__func__, rc);
+            }
+            else{
+                printk("<L15> %s OK\n", __func__);
+            }
+        }
+    }
+#endif
+}
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 
 #if defined(CONFIG_USB_GADGET_MSM_72K) || defined(CONFIG_USB_EHCI_MSM_72K)
 static struct msm_otg_platform_data msm_otg_pdata;
@@ -4361,12 +4437,24 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 	RPM_LDO(PM8058_L8,  0, 1, 0, 2900000, 3050000, LDO300HMIN),
 #endif /* CONFIG_MACH_MSM8X60_PRESTO && BOARD_REV <= WS10 */
 	RPM_LDO(PM8058_L9,  0, 1, 0, 1800000, 1800000, LDO300HMIN),
+#if defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530) || defined(CONFIG_PANTECH_PRESTO_SENSORS_BMA250)
+    RPM_LDO(PM8058_L10, 0, 1, 0, 3000000, 3000000, LDO300HMIN),
+#else /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 || CONFIG_PANTECH_PRESTO_SENSORS_BMA250 */
 	RPM_LDO(PM8058_L10, 0, 1, 0, 2600000, 2600000, LDO300HMIN),
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 || CONFIG_PANTECH_PRESTO_SENSORS_BMA250 */
 	RPM_LDO(PM8058_L11, 0, 1, 0, 1500000, 1500000, LDO150HMIN),
 	RPM_LDO(PM8058_L12, 0, 1, 0, 2900000, 2900000, LDO150HMIN),
 	RPM_LDO(PM8058_L13, 0, 1, 0, 2050000, 2050000, LDO300HMIN),
 	RPM_LDO(PM8058_L14, 0, 0, 0, 2850000, 2850000, LDO300HMIN),
+#if defined(CONFIG_PANTECH_PRESTO_SENSORS_APDS9190)
+#if (BOARD_REV >= TP10)
+    RPM_LDO(PM8058_L15, 0, 1, 0, 3000000, 3000000, LDO300HMIN),
+#else /* BOARD_REV >= TP10 */
 	RPM_LDO(PM8058_L15, 0, 1, 0, 2850000, 2850000, LDO300HMIN),
+#endif /* BOARD_REV >= TP10 */
+#else /* CONFIG_PANTECH_PRESTO_SENSORS_APDS9190 */
+    RPM_LDO(PM8058_L15, 0, 1, 0, 2850000, 2850000, LDO300HMIN),
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_APDS9190 */
 	RPM_LDO(PM8058_L16, 1, 1, 0, 1800000, 1800000, LDO300HMIN),
 	RPM_LDO(PM8058_L17, 0, 1, 0, 2600000, 2600000, LDO150HMIN),
 	RPM_LDO(PM8058_L18, 0, 1, 0, 2200000, 2200000, LDO150HMIN),
@@ -4389,7 +4477,12 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 
 	/*     ID         a_on pd ss */
 	RPM_VS(PM8058_LVS0, 0, 1, 0),
+#if defined(CONFIG_EF39S_SENSORS_MPU3050) || defined(CONFIG_EF40K_SENSORS_MPU3050) || defined(CONFIG_EF40S_SENSORS_MPU3050) \
+     || defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530) || defined(CONFIG_PANTECH_PRESTO_SENSORS_BMA250)
+    RPM_VS(PM8058_LVS1, 0, 1, 1800000),
+#else /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 || CONFIG_PANTECH_PRESTO_SENSORS_BMA250 */
 	RPM_VS(PM8058_LVS1, 0, 1, 0),
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 || CONFIG_PANTECH_PRESTO_SENSORS_BMA250 */
 
 	/*	ID        a_on pd ss min_uV   max_uV */
 	RPM_NCP(PM8058_NCP, 0, 1, 0, 1800000, 1800000),
@@ -5566,6 +5659,20 @@ static struct platform_device *surf_devices[] __initdata = {
 #endif
 	&msm8660_device_watchdog,
 	&msm8660_iommu_domain_device,
+
+#ifdef CONFIG_INPUT_SENSOR
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+    &msm_device_sensor_geomagnetic,
+    &msm_device_sensor_accelerometer,
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
+#if (defined(CONFIG_MACH_MSM8X60_EF39S) && (BOARD_REV < TP10)) || \
+    (defined(CONFIG_MACH_MSM8X60_EF40K) && (BOARD_REV < WS20)) || \
+    (defined(CONFIG_MACH_MSM8X60_EF40S) && (BOARD_REV < WS20))
+    &msm_device_sensor_gyroscope,
+#endif /* CONFIG_MACH_MSM8X60_EF39S ... */
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+    &msm_device_sensor_proximity,
+#endif /* CONFIG_INPUT_SENSOR */
 };
 
 #ifdef CONFIG_ION_MSM
@@ -10795,6 +10902,29 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 			= GPIO_ETHERNET_RESET_N_DRAGON;
 
 	platform_device_register(&smsc911x_device);
+
+#if defined(CONFIG_MACH_MSM8X60_PRESTO)
+    sensors_power_up();
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+
+#if defined(CONFIG_INPUT_SENSOR)
+    sensors_hw_init();
+#if defined(CONFIG_MACH_MSM8X60_PRESTO)
+    i2c_register_board_info(I2C_DEV_INDEX_GEOMAGNETIC, geomagnetic_i2c_info,
+        ARRAY_SIZE(geomagnetic_i2c_info));
+    i2c_register_board_info(I2C_DEV_INDEX_ACCELEROMETER, accelerometer_i2c_info,
+        ARRAY_SIZE(accelerometer_i2c_info));
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
+#if (defined(CONFIG_MACH_MSM8X60_EF39S) && (BOARD_REV < TP10)) || \
+    (defined(CONFIG_MACH_MSM8X60_EF40K) && (BOARD_REV < WS20)) || \
+    (defined(CONFIG_MACH_MSM8X60_EF40S) && (BOARD_REV < WS20))
+    i2c_register_board_info(I2C_DEV_INDEX_GYROSCOPE, gyroscope_i2c_info,
+        ARRAY_SIZE(gyroscope_i2c_info));
+#endif
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+    i2c_register_board_info(I2C_DEV_INDEX_PROXIMITY, proximity_i2c_info,
+        ARRAY_SIZE(proximity_i2c_info));
+#endif /* CONFIG_INPUT_SENSOR */
 
 #ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
     i2c_register_board_info(MSM_TKI_I2C_BUS_ID, i2c_tki_devices,
