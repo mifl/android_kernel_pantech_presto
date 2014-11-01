@@ -351,3 +351,7 @@ obj-$(CONFIG_MSM_CPU_PWRCTL) +=  msm_cpu_pwrctl.o
 obj-$(CONFIG_ARCH_RANDOM) += early_random.o
 
 obj-$(CONFIG_PANTECH_ERR_CRASH_LOGGING) += pantech_apanic.o sky_sys_reset.o
+
+ifdef CONFIG_SKY_WLAN
+obj-$(CONFIG_PANMAC) += panmac.o rpc_nv.o
+endif

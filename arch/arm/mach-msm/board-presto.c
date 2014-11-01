@@ -113,6 +113,10 @@
 #include <linux/i2c-gpio.h>
 #endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 
+#ifdef CONFIG_WIFI_CONTROL_FUNC //platform device
+#include <linux/wlan_plat.h>
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
+
 #ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 //jmlee
 #include "./qdsp6v2/snd_presto_audience_a2020.h"
 #endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
@@ -4677,7 +4681,15 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 	RPM_LDO(PM8058_L11, 0, 1, 0, 1500000, 1500000, LDO150HMIN),
 	RPM_LDO(PM8058_L12, 0, 1, 0, 2900000, 2900000, LDO150HMIN),
 	RPM_LDO(PM8058_L13, 0, 1, 0, 2050000, 2050000, LDO300HMIN),
+#if defined(CONFIG_MACH_MSM8X60_PRESTO)
+#ifdef CONFIG_SKY_MMC
+    RPM_LDO(PM8058_L14, 0, 0, 0, 2850000, 3000000, LDO300HMIN),
+#else /* CONFIG_SKY_MMC */
 	RPM_LDO(PM8058_L14, 0, 0, 0, 2850000, 2850000, LDO300HMIN),
+#endif /* CONFIG_SKY_MMC */
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
+    RPM_LDO(PM8058_L14, 0, 0, 0, 2850000, 2850000, LDO300HMIN),
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 #if defined(CONFIG_PANTECH_PRESTO_SENSORS_APDS9190)
 #if (BOARD_REV >= TP10)
     RPM_LDO(PM8058_L15, 0, 1, 0, 3000000, 3000000, LDO300HMIN),
@@ -4863,6 +4875,302 @@ static struct platform_device msm_tsens_device = {
 	.name   = "tsens-tm",
 	.id = -1,
 };
+
+#ifdef CONFIG_SKY_WLAN
+#if defined(CONFIG_SKY_EF39S_BOARD) || defined(CONFIG_SKY_EF40K_BOARD) || defined(CONFIG_SKY_EF40S_BOARD)
+static uint32_t wlan_on_gpio_cfgs[] = {
+    GPIO_CFG(107, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), 	/* WLAN_SHDN */
+    GPIO_CFG(126, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* WLAN_HOST_WAKE */
+};
+static uint32_t wlan_off_gpio_cfgs[] = {
+    GPIO_CFG(107, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), /* WLAN_SHDN */
+    GPIO_CFG(126, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),	  /* WLAN_HOST_WAKE */
+};
+#elif defined(CONFIG_PANTECH_PRESTO_BOARD)
+static uint32_t wlan_on_gpio_cfgs[] = {
+    GPIO_CFG(107, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), 	/* WLAN_SHDN */
+    GPIO_CFG(126, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),	/* WLAN_HOST_WAKE */
+};
+static uint32_t wlan_off_gpio_cfgs[] = {
+    GPIO_CFG(107, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), /* WLAN_SHDN */
+    GPIO_CFG(126, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),	  /* WLAN_HOST_WAKE */
+};
+#endif /* CONFIG_SKY_EF39S_BOARD */
+
+static int wlan_power_state;
+int wlan_power(int on)
+{
+    int rc = 0;
+    int pin = 0;
+
+    printk(KERN_ERR "%s: %d\n",__func__, on);
+
+#ifdef CONFIG_WIFI_CONTROL_FUNC
+    if (on) {
+        for (pin = 0; pin < ARRAY_SIZE(wlan_on_gpio_cfgs); pin++) {
+            rc = gpio_tlmm_config(wlan_on_gpio_cfgs[pin], GPIO_CFG_ENABLE);
+            if (rc) {
+                printk(KERN_ERR "%s: gpio_tlmm_config(%#x)=%d\n",
+                        __func__, wlan_on_gpio_cfgs[pin], rc);
+            }
+        }
+        mdelay(30);
+#if defined(CONFIG_SKY_EF39S_BOARD) || defined(CONFIG_SKY_EF40S_BOARD) || defined(CONFIG_SKY_EF40K_BOARD)
+        gpio_set_value(107, on);
+#elif defined(CONFIG_PANTECH_PRESTO_BOARD)
+        gpio_set_value(107, on);
+#endif /* CONFIG_SKY_EF39S_BOARD */
+        mdelay(40);
+
+        wlan_power_state = on;
+    } else {
+        mdelay(30);
+#if defined(CONFIG_SKY_EF39S_BOARD) || defined(CONFIG_SKY_EF40S_BOARD) || defined(CONFIG_SKY_EF40K_BOARD)
+        gpio_set_value(107, on);
+#elif defined(CONFIG_PANTECH_PRESTO_BOARD)
+        gpio_set_value(107, on);
+#endif /* CONFIG_SKY_EF39S_BOARD */
+        mdelay(40);
+
+        wlan_power_state = on;
+
+        for (pin = 0; pin < ARRAY_SIZE(wlan_off_gpio_cfgs); pin++) {
+            rc = gpio_tlmm_config(wlan_off_gpio_cfgs[pin], GPIO_CFG_ENABLE);
+            if (rc) {
+                printk(KERN_ERR "%s: gpio_tlmm_config(%#x)=%d\n",
+                        __func__, wlan_off_gpio_cfgs[pin], rc);
+            }
+        }
+    }
+#else /* CONFIG_WIFI_CONTROL_FUNC */
+
+    if (on) {
+        for (pin = 0; pin < ARRAY_SIZE(wlan_on_gpio_cfgs); pin++) {
+            rc = gpio_tlmm_config(wlan_on_gpio_cfgs[pin], GPIO_CFG_ENABLE);
+            if (rc) {
+                printk(KERN_ERR "%s: gpio_tlmm_config(%#x)=%d\n",
+                        __func__, wlan_on_gpio_cfgs[pin], rc);
+            }
+        }
+#if defined(CONFIG_SKY_EF39S_BOARD) || defined(CONFIG_SKY_EF40S_BOARD) || defined(CONFIG_SKY_EF40K_BOARD)
+        gpio_set_value(107, on);
+        mdelay(10);
+        gpio_set_value(107, 0);
+        mdelay(10);
+        gpio_set_value(107, on);
+#elif defined(CONFIG_PANTECH_PRESTO_BOARD)
+        gpio_set_value(107, on);
+        mdelay(10);
+        gpio_set_value(107, 0);
+        mdelay(10);
+        gpio_set_value(107, on);
+#endif /* CONFIG_SKY_EF39S_BOARD */
+    } else {
+#if defined(CONFIG_SKY_EF39S_BOARD) || defined(CONFIG_SKY_EF40S_BOARD) || defined(CONFIG_SKY_EF40K_BOARD)
+        gpio_set_value(107, 0);
+#elif defined(CONFIG_PANTECH_PRESTO_BOARD)
+        gpio_set_value(107, on);
+#endif /* CONFIG_SKY_EF39S_BOARD */
+
+        for (pin = 0; pin < ARRAY_SIZE(wlan_off_gpio_cfgs); pin++) {
+            rc = gpio_tlmm_config(wlan_off_gpio_cfgs[pin], GPIO_CFG_ENABLE);
+            if (rc) {
+                printk(KERN_ERR "%s: gpio_tlmm_config(%#x)=%d\n",
+                        __func__, wlan_off_gpio_cfgs[pin], rc);
+            }
+        }
+    }
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
+    return rc;
+}
+
+#ifndef CONFIG_WIFI_CONTROL_FUNC
+static void wlan_init(void)
+{
+    int rc = 0;
+    int pin = 0;
+
+    for (pin = 0; pin < ARRAY_SIZE(wlan_off_gpio_cfgs); pin++) {
+        rc = gpio_tlmm_config(wlan_off_gpio_cfgs[pin], GPIO_CFG_ENABLE);
+        if (rc) {
+            printk(KERN_ERR "%s: gpio_tlmm_config(%#x)=%d\n",
+                    __func__, wlan_off_gpio_cfgs[pin], rc);
+        }
+    }
+    wlan_power(1);
+
+}
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
+
+#ifdef CONFIG_WIFI_MEM_PREALLOC
+#define PREALLOC_WLAN_NUMBER_OF_SECTIONS	4
+#define PREALLOC_WLAN_NUMBER_OF_BUFFERS		160
+#define PREALLOC_WLAN_SECTION_HEADER		24
+
+#define WLAN_SECTION_SIZE_0	(PREALLOC_WLAN_NUMBER_OF_BUFFERS * 128)
+#define WLAN_SECTION_SIZE_1	(PREALLOC_WLAN_NUMBER_OF_BUFFERS * 128)
+#define WLAN_SECTION_SIZE_2	(PREALLOC_WLAN_NUMBER_OF_BUFFERS * 512)
+#define WLAN_SECTION_SIZE_3	(PREALLOC_WLAN_NUMBER_OF_BUFFERS * 1024)
+
+#define WLAN_SKB_BUF_NUM	16
+
+static struct sk_buff *wlan_static_skb[WLAN_SKB_BUF_NUM];
+
+typedef struct wifi_mem_prealloc_struct {
+    void *mem_ptr;
+    unsigned long size;
+} wifi_mem_prealloc_t;
+
+static wifi_mem_prealloc_t wifi_mem_array[PREALLOC_WLAN_NUMBER_OF_SECTIONS] = {
+    { NULL, (WLAN_SECTION_SIZE_0 + PREALLOC_WLAN_SECTION_HEADER) },
+    { NULL, (WLAN_SECTION_SIZE_1 + PREALLOC_WLAN_SECTION_HEADER) },
+    { NULL, (WLAN_SECTION_SIZE_2 + PREALLOC_WLAN_SECTION_HEADER) },
+    { NULL, (WLAN_SECTION_SIZE_3 + PREALLOC_WLAN_SECTION_HEADER) }
+};
+
+void *wifi_mem_prealloc(int section, unsigned long size)
+{
+    if (section == PREALLOC_WLAN_NUMBER_OF_SECTIONS)
+        return wlan_static_skb;
+    if ((section < 0) || (section > PREALLOC_WLAN_NUMBER_OF_SECTIONS))
+        return NULL;
+    if (wifi_mem_array[section].size < size)
+        return NULL;
+    return wifi_mem_array[section].mem_ptr;
+}
+EXPORT_SYMBOL(wifi_mem_prealloc);
+
+static int init_wifi_mem(void)
+{
+    int i;
+
+    for(i=0;( i < WLAN_SKB_BUF_NUM );i++) {
+        if (i < (WLAN_SKB_BUF_NUM/2))
+            wlan_static_skb[i] = dev_alloc_skb(4096);
+        else
+            wlan_static_skb[i] = dev_alloc_skb(8192);
+    }
+    for(i=0;( i < PREALLOC_WLAN_NUMBER_OF_SECTIONS );i++) {
+        wifi_mem_array[i].mem_ptr = kmalloc(wifi_mem_array[i].size,
+                GFP_KERNEL);
+        if (wifi_mem_array[i].mem_ptr == NULL)
+            return -ENOMEM;
+    }
+    return 0;
+}
+#endif /* CONFIG_WIFI_MEM_PREALLOC */
+
+#ifdef CONFIG_WIFI_CONTROL_FUNC
+static int wlan_reset_state;
+static int wlan_cd = 0; /* WIFI virtual 'card detect' status */
+static void (*wlan_status_cb)(int card_present, void *dev_id);
+static void *wlan_status_cb_devid;
+
+/* BCM4329 returns wrong sdio_vsn(1) when we read cccr,
+ * we use predefined value (sdio_vsn=2) here to initial sdio driver well
+ */
+static struct embedded_sdio_data wlan_emb_data = {
+    .cccr	= {
+        .sdio_vsn	= 2,
+        .multi_block	= 1,
+        .low_speed	= 0,
+        .wide_bus	= 0,
+        .high_power	= 1,
+        .high_speed	= 1,
+    },
+};
+
+int wlan_reset(int on)
+{
+    printk("%s: do nothing\n", __func__);
+    wlan_reset_state = on;
+    return 0;
+}
+
+static int wlan_status_register(
+            void (*callback)(int card_present, void *dev_id),
+            void *dev_id)
+{
+    if (wlan_status_cb)
+        return -EINVAL;
+    wlan_status_cb = callback;
+    wlan_status_cb_devid = dev_id;
+    return 0;
+}
+
+static unsigned int wlan_status(struct device *dev)
+{
+    return wlan_cd;
+}
+
+int wlan_set_carddetect(int val)
+{
+    printk(KERN_ERR"%s: %d\n", __func__, val);
+    wlan_cd = val;
+    if (wlan_status_cb) {
+        wlan_status_cb(val, wlan_status_cb_devid);
+    } else
+        printk(KERN_ERR"%s: Nobody to notify\n", __func__);
+    return 0;
+}
+
+static struct resource wlan_resources[] = {
+    [0] = {
+#if defined(CONFIG_SKY_EF39S_BOARD) || defined(CONFIG_SKY_EF40S_BOARD) || defined(CONFIG_SKY_EF40K_BOARD)
+        .name	= "bcm4330_wlan_irq",
+        .start	= MSM_GPIO_TO_INT(126),
+        .end		= MSM_GPIO_TO_INT(126),
+        .flags      = IORESOURCE_IRQ | IORESOURCE_IRQ_HIGHLEVEL,//IORESOURCE_IRQ_LOWLEVEL, //IORESOURCE_IRQ_LOWEDGE,
+#elif defined(CONFIG_PANTECH_PRESTO_BOARD)
+        .name	= "bcm4329_wlan_irq",
+        .start	= MSM_GPIO_TO_INT(126),
+        .end		= MSM_GPIO_TO_INT(126),
+        .flags      = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWLEVEL, //IORESOURCE_IRQ_LOWEDGE,
+#endif /* CONFIG_SKY_EF39S_BOARD */
+    },
+};
+
+static struct wifi_platform_data wlan_control = {
+    .set_power	= wlan_power,
+    .set_reset	= wlan_reset,
+    .set_carddetect = wlan_set_carddetect,
+#ifdef CONFIG_WIFI_MEM_PREALLOC
+    .mem_prealloc = wifi_mem_prealloc,
+#endif /* CONFIG_WIFI_MEM_PREALLOC */
+
+};
+
+static struct platform_device wlan_device = {
+#if defined(CONFIG_SKY_EF39S_BOARD) || defined(CONFIG_SKY_EF40S_BOARD) || defined(CONFIG_SKY_EF40K_BOARD)
+    .name		= "bcm4330_wlan",
+#elif defined(CONFIG_PANTECH_PRESTO_BOARD)
+    .name		= "bcm4329_wlan",
+#endif /* CONFIG_SKY_EF39S_BOARD */
+    .id             	= 1,
+    .num_resources = ARRAY_SIZE(wlan_resources),
+    .resource		= wlan_resources,
+    .dev			= {
+        .platform_data = &wlan_control,
+    },
+};
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
+
+static void msm8x60_wlan_init(void)
+{
+
+#ifdef CONFIG_WIFI_MEM_PREALLOC
+    int rc = 0;
+#endif /* CONFIG_WIFI_MEM_PREALLOC */
+    wlan_power(0);
+
+#ifdef CONFIG_WIFI_MEM_PREALLOC
+    rc = init_wifi_mem();
+    if (rc != 0){
+        printk(KERN_ERR "%s: init_wifi_mem_return val: %d \n", __func__, rc);
+    }
+#endif /* CONFIG_WIFI_MEM_PREALLOC */
+}
+#endif /* CONFIG_SKY_WLAN */
 
 static struct platform_device *rumi_sim_devices[] __initdata = {
 	&smc91x_device,
@@ -5946,6 +6254,10 @@ static struct platform_device *surf_devices[] __initdata = {
     &msm_device_i2c_gpio_tki,
 #endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 
+#ifdef CONFIG_WIFI_CONTROL_FUNC
+    &wlan_device,
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
+
 	&msm_tsens_device,
 	&msm_rpm_device,
 #ifdef CONFIG_ION_MSM
@@ -6361,7 +6673,7 @@ static int pm8058_gpios_init(void)
 				.inv_int_pol    = 0,
 			},
 		},
-#ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
+#if defined (CONFIG_MMC_MSM_CARD_HW_DETECTION) || defined(CONFIG_SKY_MMC)
 		{
 			PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_SDC3_DET - 1),
 			{
@@ -8469,10 +8781,18 @@ static struct msm_sdcc_pad_drv_cfg sdc4_pad_off_drv_cfg[] = {
 	{TLMM_HDRV_SDC4_DATA, GPIO_CFG_2MA}
 };
 
+#if defined(CONFIG_PANTECH_PRESTO_BOARD) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+// 20110519 khlee_wifi for PRESTO wifi sleep gpio settings
+static struct msm_sdcc_pad_pull_cfg sdc4_pad_off_pull_cfg[] = {
+    {TLMM_PULL_SDC4_CMD, GPIO_CFG_PULL_UP},
+    {TLMM_PULL_SDC4_DATA, GPIO_CFG_PULL_UP}
+};
+#else /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 static struct msm_sdcc_pad_pull_cfg sdc4_pad_off_pull_cfg[] = {
 	{TLMM_PULL_SDC4_CMD, GPIO_CFG_PULL_DOWN},
 	{TLMM_PULL_SDC4_DATA, GPIO_CFG_PULL_DOWN}
 };
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 #endif
 
 struct msm_sdcc_pin_cfg {
@@ -9071,6 +9391,27 @@ static int msm8x60_multi_sdio_init(void)
 }
 
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
+#ifdef CONFIG_SKY_MMC
+unsigned int msm8x60_sdcc_slot_status(void)
+{
+    int status;
+
+    status = gpio_request(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_SDC3_DET - 1)
+                , "SD_HW_Detect");
+    if (status) {
+        pr_err("%s:Failed to request GPIO %d\n", __func__,
+                PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_SDC3_DET - 1));
+    } else {
+        status = gpio_direction_input(
+                PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_SDC3_DET - 1));
+        if (!status)
+            status = !(gpio_get_value_cansleep(
+                PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_SDC3_DET - 1)));
+        gpio_free(PM8058_GPIO_PM_TO_SYS(PMIC_GPIO_SDC3_DET - 1));
+    }
+    return (unsigned int) status;
+}
+#else /* CONFIG_SKY_MMC */
 #ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
 static unsigned int msm8x60_sdcc_slot_status(struct device *dev)
 {
@@ -9092,9 +9433,11 @@ static unsigned int msm8x60_sdcc_slot_status(struct device *dev)
 	return (unsigned int) status;
 }
 #endif
+#endif /* CONFIG_SKY_MMC */
 #endif
 
 #ifdef	CONFIG_MMC_MSM_SDC4_SUPPORT
+#ifndef CONFIG_SKY_WLAN
 static int msm_sdcc_cfg_mpm_sdiowakeup(struct device *dev, unsigned mode)
 {
 	struct platform_device *pdev;
@@ -9129,6 +9472,7 @@ static int msm_sdcc_cfg_mpm_sdiowakeup(struct device *dev, unsigned mode)
 	}
 	return ret;
 }
+#endif /* CONFIG_SKY_WLAN */
 #endif
 #endif
 
@@ -9194,13 +9538,20 @@ static struct mmc_platform_data msm8x60_sdc3_data = {
 static struct mmc_platform_data msm8x60_sdc4_data = {
 	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd  = msm_sdcc_setup_power,
+#ifdef CONFIG_WIFI_CONTROL_FUNC
+	.status				= wlan_status,
+	.register_status_notify	= wlan_status_register,
+	.embedded_sdio		= &wlan_emb_data,
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
 	.msmsdcc_fmin	= 400000,
 	.msmsdcc_fmid	= 24000000,
 	.msmsdcc_fmax	= 48000000,
 	.nonremovable	= 0,
 	.pclk_src_dfab  = 1,
+#ifndef CONFIG_SKY_WLAN	
 	.cfg_mpm_sdiowakeup = msm_sdcc_cfg_mpm_sdiowakeup,
+#endif /* CONFIG_SKY_WLAN */
 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
 };
 #endif
@@ -9258,7 +9609,11 @@ static void __init msm8x60_init_mmc(void)
 
 	if (machine_is_msm8x60_fusion())
 		msm8x60_sdc2_data.msmsdcc_fmax = 24000000;
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()) {
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			|| machine_is_msm8x60_presto()
+#endif
+	) {
 #ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
 		msm8x60_sdc2_data.sdiowakeup_irq = gpio_to_irq(144);
 		msm_sdcc_setup_gpio(2, 1);
@@ -9269,10 +9624,23 @@ static void __init msm8x60_init_mmc(void)
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 	/* SDCC3 : External card slot connected */
 	sdcc_vreg_data[2].vdd_data = &sdcc_vdd_reg_data[2];
+#if defined(CONFIG_MACH_MSM8X60_EF39S) || defined(CONFIG_MACH_MSM8X60_EF40S) || defined(CONFIG_MACH_MSM8X60_EF40K)
+#if (BOARD_REV >= WS10)
+    sdcc_vreg_data[2].vdd_data->reg_name = "8058_l15";
+#else
 	sdcc_vreg_data[2].vdd_data->reg_name = "8058_l14";
+#endif
+#else
+    sdcc_vreg_data[2].vdd_data->reg_name = "8058_l14";
+#endif /* CONFIG_MACH_MSM8X60_EF39S */
 	sdcc_vreg_data[2].vdd_data->set_voltage_sup = 1;
+#ifdef CONFIG_SKY_MMC
+    sdcc_vreg_data[2].vdd_data->level = 3000000;
+    sdcc_vreg_data[2].vdd_data->always_on = 1;
+#else /* CONFIG_SKY_MMC */
 	sdcc_vreg_data[2].vdd_data->level = 2850000;
 	sdcc_vreg_data[2].vdd_data->always_on = 1;
+#endif /* CONFIG_SKY_MMC */
 	sdcc_vreg_data[2].vdd_data->op_pwr_mode_sup = 1;
 	sdcc_vreg_data[2].vdd_data->lpm_uA = 9000;
 	sdcc_vreg_data[2].vdd_data->hpm_uA = 200000;
@@ -9322,7 +9690,11 @@ static void __init msm8x60_init_mmc(void)
 
 	if (machine_is_msm8x60_fusion())
 		msm8x60_sdc5_data.msmsdcc_fmax = 24000000;
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()) {
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			|| machine_is_msm8x60_presto()
+#endif
+	) {
 #ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
 		msm8x60_sdc5_data.sdiowakeup_irq = gpio_to_irq(99);
 		msm_sdcc_setup_gpio(5, 1);
@@ -11541,6 +11913,13 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 #ifdef CONFIG_PANTECH_BT
     bt_power_init();
 #endif /* CONFIG_PANTECH_BT */
+#ifdef CONFIG_SKY_WLAN
+#ifdef CONFIG_WIFI_CONTROL_FUNC
+    msm8x60_wlan_init();
+#else /* CONFIG_WIFI_CONTROL_FUNC */
+    wlan_init();
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
+#endif /* CONFIG_SKY_WLAN */
 
 	msm8x60_multi_sdio_init();
 

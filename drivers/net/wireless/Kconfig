@@ -283,6 +283,20 @@ config LIBRA_SDIOIF
 	---help---
 	  A driver for Qualcomm WLAN SDIO Libra chipset.
 
+config SKY_WLAN
+    bool "SKY WLAN"
+    depends on CUST_SKY_H
+    default y
+    ---help---
+      Support SKY WLAN
+
+config PANMAC
+    bool "WLAN MAC ADDRESS"
+    depends on CUST_SKY_H
+    default y
+    ---help---
+      Support PANMAC
+
 config WCNSS_CORE
 	tristate "Qualcomm WCNSS CORE driver"
 	depends on ARCH_MSM8960

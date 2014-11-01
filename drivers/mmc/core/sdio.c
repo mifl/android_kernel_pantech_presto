@@ -206,6 +206,8 @@ static int sdio_disable_cd(struct mmc_card *card)
 	return mmc_io_rw_direct(card, 1, 0, SDIO_CCCR_IF, ctrl, NULL);
 }
 
+#if !defined (CONFIG_PANTECH_WIFI_MMC) && !defined(CONFIG_SKY_WLAN_MMC)
+// 20110322 khlee_wifi for compilation error 
 /*
  * Devices that remain active during a system suspend are
  * put back into 1-bit mode.
@@ -239,6 +241,7 @@ static int sdio_disable_wide(struct mmc_card *card)
 
 	return 0;
 }
+#endif /* CONFIG_PANTECH_WIFI_MMC && CONFIG_SKY_WLAN_MMC */
 
 
 static int sdio_enable_4bit_bus(struct mmc_card *card)
@@ -670,11 +673,13 @@ static int mmc_sdio_suspend(struct mmc_host *host)
 		}
 	}
 
+#if !defined (CONFIG_PANTECH_WIFI_MMC) && !defined(CONFIG_SKY_WLAN_MMC)
 	if (!err && mmc_card_keep_power(host) && mmc_card_wake_sdio_irq(host)) {
 		mmc_claim_host(host);
 		sdio_disable_wide(host->card);
 		mmc_release_host(host);
 	}
+#endif /* CONFIG_PANTECH_WIFI_MMC && CONFIG_SKY_WLAN_MMC */
 
 	return err;
 }
@@ -683,9 +688,16 @@ static int mmc_sdio_resume(struct mmc_host *host)
 {
 	int i, err = 0;
 
+#if defined (CONFIG_PANTECH_WIFI_MMC) || defined(CONFIG_SKY_WLAN_MMC)
+// 20110322 khlee_wifi for wifi suspend/resume patch
+    err = 0;
+#endif /* CONFIG_PANTECH_WIFI_MMC && CONFIG_SKY_WLAN_MMC */
+
 	BUG_ON(!host);
 	BUG_ON(!host->card);
 
+#if !defined (CONFIG_PANTECH_WIFI_MMC) && !defined(CONFIG_SKY_WLAN_MMC)
+// 20110322 khlee_wifi for wifi suspend/resume patch
 	/* Basic card reinitialization. */
 	mmc_claim_host(host);
 
@@ -708,6 +720,7 @@ static int mmc_sdio_resume(struct mmc_host *host)
 	if (!err && host->sdio_irqs)
 		wake_up_process(host->sdio_irq_thread);
 	mmc_release_host(host);
+#endif /* CONFIG_PANTECH_WIFI_MMC && CONFIG_SKY_WLAN_MMC */
 
 	/*
 	 * If the card looked to be the same as before suspending, then
