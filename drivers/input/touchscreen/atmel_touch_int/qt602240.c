@@ -4238,6 +4238,8 @@ void  get_message(struct work_struct * p)
 
 	dbg_func_in();
 
+	enable_irq(qt602240_data->client->irq);
+
 	/* Get the lock */
 	mutex_lock(&qt602240_data->lock);
 
@@ -4811,6 +4813,7 @@ void message_handler(U8 *msg, U8 length)
 irqreturn_t qt602240_irq_handler(int irq, void *dev_id)
 {
 	//dbg_func_in();
+	disable_irq_nosync(irq);
 	queue_work(qt602240_wq, &qt602240_data->work);
 	//dbg_func_out();
 	return IRQ_HANDLED;
@@ -5058,7 +5061,7 @@ static int __devinit qt602240_probe(struct i2c_client *client, const struct i2c_
 #endif
 
 	qt602240_data->client->irq = IRQ_TOUCH_INT;
-	rc = request_irq(qt602240_data->client->irq, qt602240_irq_handler, IRQF_TRIGGER_FALLING, "qt602240-irq", qt602240_data);
+	rc = request_threaded_irq(qt602240_data->client->irq, NULL, qt602240_irq_handler, IRQF_TRIGGER_LOW | IRQF_ONESHOT, "qt602240-irq", qt602240_data);
 	if (!rc)
 	{
 		dbg("request_irq : success.\n");
