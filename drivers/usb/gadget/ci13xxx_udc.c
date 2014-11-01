@@ -67,6 +67,10 @@
 
 #include "ci13xxx_udc.h"
 
+#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+#include "f_pantech_android.h"
+#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
+
 
 /******************************************************************************
  * DEFINE
@@ -2762,6 +2766,10 @@ static const struct usb_ep_ops usb_ep_ops = {
 	.fifo_flush    = ep_fifo_flush,
 };
 
+#ifdef CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE
+extern int set_factory_mode(bool onoff);
+#endif /* CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE */
+
 /******************************************************************************
  * GADGET block
  *****************************************************************************/
@@ -2784,12 +2792,22 @@ static int ci13xxx_vbus_session(struct usb_gadget *_gadget, int is_active)
 		if (is_active) {
 			pm_runtime_get_sync(&_gadget->dev);
 			hw_device_reset(udc);
-			if (udc->softconnect)
+			if (udc->softconnect) {
 				hw_device_state(udc->ep0out.qh.dma);
+#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+                    usb_connect_cb();
+#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
+			}
 		} else {
+#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+            printk(KERN_INFO "vbus_gadget disconnect!!!!!!\n");
+#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
 			hw_device_state(0);
 			_gadget_stop_activity(&udc->gadget);
 			pm_runtime_put_sync(&_gadget->dev);
+#ifdef CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE
+            set_factory_mode(false);
+#endif /* CONFIG_ANDROID_PANTECH_USB_FACTORY_CABLE */
 		}
 	}
 
