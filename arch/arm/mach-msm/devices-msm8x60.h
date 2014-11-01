@@ -27,6 +27,10 @@
 #define MSM_TKI_I2C_BUS_ID 12
 #endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 
+#if defined (CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee
+#define MSM_GSBI10_QUP_I2C_BUS_ID 21
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+
 #ifdef CONFIG_SND_SOC_MSM8660_APQ
 extern struct platform_device msm_pcm;
 extern struct platform_device msm_pcm_routing;

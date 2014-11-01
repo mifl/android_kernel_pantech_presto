@@ -509,12 +509,27 @@ static inline void msm_hsusb_set_vbus_state(int online) {}
 
 void msm_snddev_init(void);
 void msm_snddev_init_timpani(void);
+#ifdef CONFIG_MACH_MSM8X60_PRESTO  // jmlee 
+int msm_snddev_poweramp_on(void);
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
 void msm_snddev_poweramp_on(void);
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 void msm_snddev_poweramp_off(void);
 void msm_snddev_hsed_voltage_on(void);
 void msm_snddev_hsed_voltage_off(void);
 void msm_snddev_tx_route_config(void);
 void msm_snddev_tx_route_deconfig(void);
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 //jmlee
+void msm_snddev_mic_sel_a2020(void);
+int msm_snddev_mic_sel_QTR(void);
+void msm_snddev_nr_receiver_amp_on(void);
+void msm_snddev_nr_receiver_amp_off(void);
+int msm_snddev_nr_out_sel_qtrReceiver_or_A2020Speaker(void);
+void msm_snddev_nr_out_sel_A2020Reciever(void);
+int msm_snddev_nr_out_sel_A2020Reciever_nr_receiver_amp_on(void);
+void msm_snddev_nr_out_sel_A2020Reciever_nr_receiver_amp_off(void);
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 extern unsigned int msm_shared_ram_phys; /* defined in arch/arm/mach-msm/io.c */
 

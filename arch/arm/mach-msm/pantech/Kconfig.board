@@ -24,6 +24,18 @@ config PANTECH_ATNT
 config PANTECH_QUANTINA_BOARD
 	bool "PANTECH_QUANTINA_BOARD Configuration"
 
+config SKY_SND_CTRL
+	bool
+
+config SKY_SND_EXTAMP
+	bool
+
+config SKY_SND_MVS
+	bool
+
+config SKY_SND_VT_VOIP
+	bool
+
 config PANTECH_ERR_CRASH_LOGGING
 	bool "PANTECH_ERR_CRASH_LOGGING Configuration"
 

@@ -265,11 +265,13 @@ static struct gpiomux_setting lcdc_suspend_cfg = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110610 audience a2020 clk
 static struct gpiomux_setting mdp_vsync_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 static struct gpiomux_setting hdmi_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -331,11 +333,13 @@ static struct gpiomux_setting ts_suspended = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110610 audience a2020 clk
 static struct gpiomux_setting mdp_vsync_active_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 static struct gpiomux_setting hdmi_active_1_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -545,6 +549,25 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gsbi8,
 		},
 	},
+//pz1946 debug add 0301
+#if defined (CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee
+{
+    .gpio      = 72,
+    .settings = {
+        [GPIOMUX_SUSPENDED] = &spi_suspended_config,
+        [GPIOMUX_ACTIVE]    = &spi_active,
+        //[GPIOMUX_SUSPENDED] = &gsbi10,
+    },
+},
+{
+    .gpio      = 73,
+    .settings = {
+        [GPIOMUX_SUSPENDED] = &spi_suspended_config,
+        [GPIOMUX_ACTIVE]    = &spi_active,
+        //[GPIOMUX_SUSPENDED] = &gsbi10,
+    },
+},
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 };
 
 static struct msm_gpiomux_config msm8x60_fluid_gsbi_configs[] __initdata = {
@@ -555,6 +578,7 @@ static struct msm_gpiomux_config msm8x60_fluid_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020
 	{
 		.gpio      = 72,
 		.settings = {
@@ -569,6 +593,7 @@ static struct msm_gpiomux_config msm8x60_fluid_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 };
 
 static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
@@ -1431,6 +1456,7 @@ static struct msm_gpiomux_config msm8x60_lcdc_configs[] __initdata = {
 };
 
 static struct msm_gpiomux_config msm8x60_mdp_vsync_configs[] __initdata = {
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110610 audience a2020 clk
 	{
 		.gpio = 28,
 		.settings = {
@@ -1438,6 +1464,7 @@ static struct msm_gpiomux_config msm8x60_mdp_vsync_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &mdp_vsync_suspend_cfg,
 		},
 	},
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 };
 
 static struct msm_gpiomux_config msm8x60_hdmi_configs[] __initdata = {
