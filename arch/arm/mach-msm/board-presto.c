@@ -1533,7 +1533,11 @@ static int msm_hsusb_pmic_vbus_notif_init(void (*callback)(int online),
 	int ret = -ENOTSUPP;
 
 #if defined(CONFIG_SMB137B_CHARGER) || defined(CONFIG_SMB137B_CHARGER_MODULE)
-	if (machine_is_msm8x60_fluid()) {
+	if (machine_is_msm8x60_fluid()
+#ifdef CONFIG_SKY_SMB_CHARGER
+                || machine_is_msm8x60_ef39s() || machine_is_msm8x60_ef40k() || machine_is_msm8x60_ef40s()
+#endif
+        ) {
 		if (init)
 			msm_charger_register_vbus_sn(callback);
 		else
@@ -2951,6 +2955,14 @@ static struct i2c_board_info msm_camera_dragon_boardinfo[] __initdata = {
 #endif
 #endif
 
+#ifdef CONFIG_SKY_BATTERY_MAX17040 //p14682 kobj 110607ps2 team shs : fuel gauge porting
+static struct i2c_board_info max17040_i2c_boardinfo[] ={
+    {
+        I2C_BOARD_INFO("max17040", 0x36),
+    },
+};
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
+
 #ifdef CONFIG_MSM_GEMINI
 static struct resource msm_gemini_resources[] = {
 	{
@@ -3014,6 +3026,14 @@ static struct msm_i2c_platform_data msm_gsbi10_qup_i2c_pdata = {
     .msm_i2c_config_gpio = gsbi_qup_i2c_gpio_config,
 };
 #endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+
+#ifdef CONFIG_SKY_BATTERY_MAX17040 //p14682 kobj 110607ps2 team shs : fuel gauge porting
+static struct msm_i2c_platform_data msm_gsbi11_qup_i2c_pdata = {
+    .clk_freq = 100000,
+    .src_clk_rate = 24000000,
+    .msm_i2c_config_gpio = gsbi_qup_i2c_gpio_config,
+};
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 
 static struct msm_i2c_platform_data msm_gsbi12_qup_i2c_pdata = {
 	.clk_freq = 100000,
@@ -5543,10 +5563,14 @@ static int pmic8058_xoadc_vreg_config(int on)
 			pr_err("%s: Enable of regulator ldo18_adc "
 						"failed\n", __func__);
 	} else {
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+        rc = 0;
+#else /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
 		rc = regulator_disable(vreg_ldo18_adc);
 		if (rc)
 			pr_err("%s: Disable of regulator ldo18_adc "
 						"failed\n", __func__);
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
 	}
 
 	return rc;
@@ -5765,6 +5789,9 @@ static struct platform_device *surf_devices[] __initdata = {
 #endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	&msm_gsbi12_qup_i2c_device,
 #endif
+#ifdef CONFIG_SKY_BATTERY_MAX17040  // p14682 kobj 110607
+    &msm_gsbi11_qup_i2c_device,
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 #if defined(CONFIG_SERIAL_MSM_HS) || defined(CONFIG_PANTECH_BT) //lsi@ps2.bluez
 	&msm_device_uart_dm1,
 #endif
@@ -6224,6 +6251,7 @@ static void __init msm8x60_reserve(void)
 	msm_reserve();
 }
 
+#if defined(CONFIG_SMB137B_CHARGER) || defined(CONFIG_SMB137B_CHARGER_MODULE) || defined(CONFIG_ISL9519_CHARGER)
 #define EXT_CHG_VALID_MPP 10
 #define EXT_CHG_VALID_MPP_2 11
 
@@ -6233,6 +6261,7 @@ static struct pm8xxx_mpp_init_info isl_mpp[] = {
 	PM8058_MPP_INIT(EXT_CHG_VALID_MPP_2, D_BI_DIR,
 		PM8058_MPP_DIG_LEVEL_S3, BI_PULLUP_10KOHM),
 };
+#endif /* CONFIG_SMB137B_CHARGER || CONFIG_SMB137B_CHARGER_MODULE || CONFIG_ISL9519_CHARGER */
 
 #ifdef CONFIG_ISL9519_CHARGER
 static int isl_detection_setup(void)
@@ -7970,6 +7999,14 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
 		ARRAY_SIZE(smb137b_charger_i2c_info),
 	},
 #endif
+#ifdef CONFIG_SKY_BATTERY_MAX17040 //p14682 kobj 110607PS2 TEAM shs : fuel gauge porting
+    {
+        I2C_SURF | I2C_FFA | I2C_FLUID,
+        MSM_GSBI11_QUP_I2C_BUS_ID,
+        max17040_i2c_boardinfo,
+        ARRAY_SIZE(max17040_i2c_boardinfo),
+    },
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 #ifdef CONFIG_PANTECH_AUDIO_PRESTO_FAB2200  // jmlee 20110505 add
     {
         I2C_SURF | I2C_FFA | I2C_FLUID,
@@ -8120,6 +8157,9 @@ static void __init msm8x60_init_buses(void)
 	}
 #endif
 	msm_gsbi9_qup_i2c_device.dev.platform_data = &msm_gsbi9_qup_i2c_pdata;
+#ifdef CONFIG_SKY_BATTERY_MAX17040 //p14682 kobj 110607 PS2 TEAM SHS : fuel gauge porting
+    msm_gsbi11_qup_i2c_device.dev.platform_data = &msm_gsbi11_qup_i2c_pdata;
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 #if defined(CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee 
     msm_gsbi10_qup_i2c_device.dev.platform_data = &msm_gsbi10_qup_i2c_pdata;
 #endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
@@ -11084,6 +11124,78 @@ static struct msm_board_data msm8x60_charm_surf_board_data __initdata = {
 static struct msm_board_data msm8x60_charm_ffa_board_data __initdata = {
 	.gpiomux_cfgs = msm8x60_charm_gpiomux_cfgs,
 };
+#ifdef CONFIG_SKY_BATTERY_MAX17040  // p14682 kobj 110607
+static unsigned max17040_config_gpio[] = {
+    /* FUEL_I2C_SCL */
+    GPIO_CFG(103, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+    /* FUEL_I2C_SDA */
+    GPIO_CFG(104, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
+};
+
+static void max17040_init(void) //ps2 team shs : add filed
+{
+    int rc = 0;
+    int pin = 0;
+    printk(KERN_ERR "%s: \n",__func__);
+    for (pin = 0; pin < ARRAY_SIZE(max17040_config_gpio); pin++) {
+        rc = gpio_tlmm_config(max17040_config_gpio[pin], GPIO_CFG_ENABLE);
+        if (rc) {
+            printk(KERN_ERR "%s: gpio_tlmm_config(%#x)=%d\n",
+            __func__, max17040_config_gpio[pin], rc);
+        }
+    }
+}
+
+int Max_gpio_Sleep_set(int insleep)  //20120319 PZ1949 max17040 update
+{
+    int rc = 0;
+
+    if(insleep)
+    {
+        rc = gpio_tlmm_config(GPIO_CFG(103, 2, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),GPIO_CFG_ENABLE);
+        rc = gpio_tlmm_config(GPIO_CFG(104, 2, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),GPIO_CFG_ENABLE);	
+    }
+    else
+    {
+        rc = gpio_tlmm_config(GPIO_CFG(103, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),GPIO_CFG_ENABLE);
+        rc = gpio_tlmm_config(GPIO_CFG(104, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),GPIO_CFG_ENABLE);
+
+    }
+
+    if (!rc) {
+        gpio_set_value_cansleep(103,1);
+        gpio_set_value_cansleep(104,1);
+    }
+
+    return 0;
+}
+EXPORT_SYMBOL(Max_gpio_Sleep_set);
+
+
+static unsigned battery_life_gpio[] = {
+
+    GPIO_CFG(154, 2, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+
+    GPIO_CFG(155, 2, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+
+    GPIO_CFG(156, 2, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)	
+};
+
+void battery_life_gpio_init(void) //ps2 team shs : add filed
+{
+    int rc = 0;
+    int pin = 0;
+    printk(KERN_ERR "%s: \n",__func__);
+    for (pin = 0; pin < ARRAY_SIZE(battery_life_gpio); pin++) {
+        rc = gpio_tlmm_config(battery_life_gpio[pin], GPIO_CFG_ENABLE);
+        if (rc) {
+            printk(KERN_ERR "%s: gpio_tlmm_config(%#x)=%d\n",
+            __func__, battery_life_gpio[pin], rc);
+        }
+    }
+}
+EXPORT_SYMBOL(battery_life_gpio_init);
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 
 static struct msm_board_data msm8x60_dragon_board_data __initdata = {
 	.gpiomux_cfgs = msm8x60_dragon_gpiomux_cfgs,
@@ -11215,7 +11327,11 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 #ifdef CONFIG_BATTERY_MSM8X60
 	if (machine_is_msm8x60_surf() || machine_is_msm8x60_ffa() ||
 		machine_is_msm8x60_fusion() || machine_is_msm8x60_dragon() ||
-		machine_is_msm8x60_fusn_ffa() || machine_is_msm8x60_fluid())
+		machine_is_msm8x60_fusn_ffa() || machine_is_msm8x60_fluid()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+		|| machine_is_msm8x60_presto()
+#endif
+		)
 		platform_device_register(&msm_charger_device);
 #endif
 
@@ -11411,6 +11527,13 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	else
 		platform_device_register(&gpio_leds);
 #endif
+#ifdef CONFIG_SKY_BATTERY_MAX17040  // p14682 kobj 110607
+    max17040_init();
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
+//pz1946 20110907 interrupt pin change
+#ifdef CONFIG_SKY_SMB_CHARGER
+    smb137b_init();
+#endif /* CONFIG_SKY_SMB_CHARGER */
 #ifdef CONFIG_PANTECH_BT
     bt_power_init();
 #endif /* CONFIG_PANTECH_BT */

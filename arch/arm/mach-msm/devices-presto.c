@@ -407,6 +407,29 @@ static struct resource gsbi4_qup_i2c_resources[] = {
 	},
 };
 
+#ifdef CONFIG_SKY_BATTERY_MAX17040 // p14682 kobj 110607ps2 team shs : add fuel gauge
+static struct resource gsbi11_qup_i2c_resources[] = {
+    {
+        .name   = "qup_phys_addr",
+        .start  = MSM_GSBI11_QUP_PHYS,
+        .end    = MSM_GSBI11_QUP_PHYS + SZ_4K - 1,
+        .flags  = IORESOURCE_MEM,
+    },
+    {
+        .name   = "gsbi_qup_i2c_addr",
+        .start  = MSM_GSBI11_PHYS,
+        .end    = MSM_GSBI11_PHYS + 4 - 1,
+        .flags  = IORESOURCE_MEM,
+    },
+    {
+        .name   = "qup_err_intr",
+        .start  = GSBI11_QUP_IRQ,
+        .end    = GSBI11_QUP_IRQ,
+        .flags  = IORESOURCE_IRQ,
+    },
+};
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
+
 static struct resource gsbi7_qup_i2c_resources[] = {
 	{
 		.name	= "qup_phys_addr",
@@ -874,6 +897,15 @@ struct platform_device msm_gsbi4_qup_i2c_device = {
 	.num_resources	= ARRAY_SIZE(gsbi4_qup_i2c_resources),
 	.resource	= gsbi4_qup_i2c_resources,
 };
+
+#ifdef CONFIG_SKY_BATTERY_MAX17040 // p14682 kobj 110607ps2 team shs : fuel gauge porting
+struct platform_device msm_gsbi11_qup_i2c_device = {
+    .name           = "qup_i2c",
+    .id             = MSM_GSBI11_QUP_I2C_BUS_ID,
+    .num_resources  = ARRAY_SIZE(gsbi11_qup_i2c_resources),
+    .resource       = gsbi11_qup_i2c_resources,
+};
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
 
 /* Use GSBI8 QUP for /dev/i2c-3 */
 struct platform_device msm_gsbi8_qup_i2c_device = {
