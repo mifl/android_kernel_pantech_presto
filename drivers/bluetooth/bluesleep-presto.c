@@ -55,11 +55,6 @@
 /* Added by YD Park.  To meet BRCM's Bluetooth LPM requirment */
 #define BRCM_H4_LPM_SUPPORT
 
-// p12912- NOL
-#if 0
-#define FROYO_BT_INT_BUG_FIXED
-#endif
-
 #ifdef BRCM_H4_LPM_SUPPORT
 #include <linux/wakelock.h>
 #endif
@@ -84,9 +79,6 @@ struct bluesleep_info {
 	struct uart_port *uport;
 #ifdef BRCM_H4_LPM_SUPPORT
 	struct wake_lock wake_lock;
-#endif
-#ifdef FROYO_BT_INT_BUG_FIXED
-	int state_info;
 #endif
 };
 
@@ -237,7 +229,6 @@ static void bluesleep_sleep_work(struct work_struct *work)
 
 		if (msm_hs_tx_empty(bsi->uport)) {
 			printk(KERN_INFO"%s : going to sleep... \n",__func__);
-
 			set_bit(BT_ASLEEP, &flags);
 			/*Deactivating UART */
 			hsuart_power(0);
@@ -400,37 +391,15 @@ static void bluesleep_tx_timer_expire(unsigned long data)
  * @param dev_id Not used.
  */
 static irqreturn_t bluesleep_hostwake_isr(int irq, void *dev_id)
-{	
-#ifdef FROYO_BT_INT_BUG_FIXED
-	unsigned long irqFlag;
-#else
+{
 	int ret=0;
-#endif
+
 #ifndef BRCM_H4_LPM_SUPPORT
 	gpio_clear_detect_status(bsi->host_wake_irq);
 #endif
 
 	wake_lock_timeout(&bsi->wake_lock, HZ / 2);
 
-#ifdef FROYO_BT_INT_BUG_FIXED
-	printk(KERN_INFO"%s: %d \n",__func__, gpio_get_value(bsi->host_wake));
-
-	bsi->state_info = gpio_get_value(bsi->host_wake);
-
-	if(bsi->state_info)
-		irqFlag = IRQF_DISABLED | IRQF_TRIGGER_LOW;
-	else
-	{
-		irqFlag = IRQF_DISABLED | IRQF_TRIGGER_HIGH;
-
-		/* schedule a tasklet to handle the change in the host wake line */
-		tasklet_schedule(&hostwake_task);
-		
-       smp_mb(); // 2011_09_06 BT KSJ_DEVICE multi core issue
-	}
-	irq_set_irq_type(bsi->host_wake_irq, irqFlag);
-#endif	
-#ifndef FROYO_BT_INT_BUG_FIXED
 	printk(KERN_INFO"%s: %d \n",__func__, gpio_get_value(bsi->host_wake));
 
 	/* schedule a tasklet to handle the change in the host wake line */
@@ -438,7 +407,6 @@ static irqreturn_t bluesleep_hostwake_isr(int irq, void *dev_id)
 
 	if(!ret)
 		tasklet_schedule(&hostwake_task);
-#endif
 
 	return IRQ_HANDLED;
 }
@@ -452,9 +420,7 @@ static int bluesleep_start(void)
 {
 	int retval;
 	unsigned long irq_flags;
-#ifdef FROYO_BT_INT_BUG_FIXED	
-	unsigned long irqFlag;
-#endif	
+
 	spin_lock_irqsave(&rw_lock, irq_flags);
 
 	if (test_bit(BT_PROTO, &flags)) {
@@ -478,24 +444,9 @@ static int bluesleep_start(void)
 #endif
 	/* assert BT_WAKE */
 	gpio_set_value(bsi->ext_wake, 0);
-
-#ifdef FROYO_BT_INT_BUG_FIXED
-#ifdef DEBUG	
-	printk(KERN_ERR "%s: host wake pin status is %d\n", __func__, gpio_get_value(bsi->host_wake));
-#endif
-	bsi->state_info = gpio_get_value(bsi->host_wake);
-
-	if(bsi->state_info)
-		irqFlag = IRQF_DISABLED | IRQF_TRIGGER_LOW;
-	else
-		irqFlag = IRQF_DISABLED | IRQF_TRIGGER_HIGH;
-#endif
-#ifdef FROYO_BT_INT_BUG_FIXED
-	retval = request_irq(bsi->host_wake_irq, bluesleep_hostwake_isr,irqFlag,"bt_hostwake", NULL);
-#else
-	retval = request_irq(bsi->host_wake_irq, bluesleep_hostwake_isr,IRQF_DISABLED | IRQF_TRIGGER_FALLING,"bt_hostwake", NULL);
-#endif
-
+	retval = request_irq(bsi->host_wake_irq, bluesleep_hostwake_isr,
+				IRQF_DISABLED | IRQF_TRIGGER_FALLING,
+				"bt_hostwake", NULL);
 	if (retval  < 0) {
 		BT_ERR("Couldn't acquire BT_HOST_WAKE IRQ");
 		goto fail;
