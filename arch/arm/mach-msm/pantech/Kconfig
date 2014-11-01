@@ -1,0 +1,6 @@
+config CUST_SKY_H
+	bool
+
+menu "Pantech Board Selection"
+source "arch/arm/mach-msm/pantech/Kconfig.board"
+endmenu

@@ -1,0 +1,9 @@
+#
+# Include the specific Kconfig file for Pantech boards
+#
+
+config MACH_PANTECH_DUMMY
+	depends on CUST_SKY_H
+	bool "NONE (No device)"
+
+comment "Continued the standard kernel"
