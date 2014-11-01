@@ -295,6 +295,6 @@ config PANTECH_BT
 config PANTECH_PRESTO_BLUESLEEP
     bool "Custom presto bluesleep driver"
     depends on PANTECH_BT && MACH_MSM8X60_PRESTO
-	default y
+	default n
 
 endmenu
