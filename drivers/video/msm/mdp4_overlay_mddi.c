@@ -346,7 +346,9 @@ int mdp4_mddi_pipe_commit(void)
 			* which will be freed at next
 			* pipe_commit
 			*/
+#ifdef CONFIG_FB_MSM_MDDI
 			mdp4_overlay_iommu_pipe_free(pipe->pipe_ndx, 0);
+#endif
 			pipe->pipe_used = 0; /* clear */
 		}
 	}
@@ -614,6 +616,7 @@ void mdp4_overlay0_done_mddi(int cndx)
 	spin_unlock(&vctrl->spin_lock);
 }
 
+#ifdef CONFIG_FB_MSM_MDDI
 static void clk_ctrl_work(struct work_struct *work)
 {
 	struct vsycn_ctrl *vctrl =
@@ -671,6 +674,7 @@ void mdp4_mddi_rdptr_init(int cndx)
 	INIT_WORK(&vctrl->vsync_work, send_vsync_work);
 	INIT_WORK(&vctrl->clk_work, clk_ctrl_work);
 }
+#endif
 
 void mdp4_primary_rdptr(void)
 {
@@ -955,7 +959,7 @@ int mdp4_mddi_off(struct platform_device *pdev)
 	/* sanity check, free pipes besides base layer */
 	mdp4_overlay_unset_mixer(pipe->mixer_num);
 	mdp4_mixer_stage_down(pipe, 1);
-	mdp4_overlay_pipe_free(pipe);
+	mdp4_overlay_pipe_free(pipe, 1);
 	vctrl->base_pipe = NULL;
 
 	if (vctrl->clk_enabled) {
@@ -985,31 +989,6 @@ int mdp4_mddi_off(struct platform_device *pdev)
 	 */
 
 	return ret;
-}
-
-void mdp_mddi_overlay_suspend(struct msm_fb_data_type *mfd)
-{
-	int cndx = 0;
-	struct vsycn_ctrl *vctrl;
-	struct mdp4_overlay_pipe *pipe;
-
-	vctrl = &vsync_ctrl_db[cndx];
-	pipe = vctrl->base_pipe;
-	/* dis-engage rgb0 from mixer0 */
-	if (pipe) {
-		if (mfd->ref_cnt == 0) {
-			/* adb stop */
-			if (pipe->pipe_type == OVERLAY_TYPE_BF)
-				mdp4_overlay_borderfill_stage_down(pipe);
-
-			/* pipe == rgb1 */
-			mdp4_overlay_unset_mixer(pipe->mixer_num);
-			vctrl->base_pipe = NULL;
-		} else {
-			mdp4_mixer_stage_down(pipe, 1);
-			mdp4_overlay_iommu_pipe_free(pipe->pipe_ndx, 1);
-		}
-	}
 }
 
 void mdp4_mddi_overlay(struct msm_fb_data_type *mfd)

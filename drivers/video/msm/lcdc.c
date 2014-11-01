@@ -31,6 +31,16 @@
 #include <linux/regulator/consumer.h>
 
 #include "msm_fb.h"
+#include "mdp4.h"
+
+struct mdp4_overlay_perf {
+	u32 mdp_clk_rate;
+	u32 use_ov0_blt;
+	u32 use_ov1_blt;
+	u32 mdp_bw;
+};
+
+extern struct mdp4_overlay_perf perf_current;
 
 static int lcdc_probe(struct platform_device *pdev);
 static int lcdc_remove(struct platform_device *pdev);
@@ -83,8 +93,6 @@ static int lcdc_off(struct platform_device *pdev)
 		}
 		clk_disable_unprepare(mfd->ebi1_clk);
 	}
-#else
-	mdp_bus_scale_update_request(0);
 #endif
 
 	return ret;
@@ -105,9 +113,7 @@ static int lcdc_on(struct platform_device *pdev)
 
 	if (!panel_pixclock_freq)
 		panel_pixclock_freq = mfd->fbi->var.pixclock;
-#ifdef CONFIG_MSM_BUS_SCALING
-	mdp_bus_scale_update_request(2);
-#else
+#ifndef CONFIG_MSM_BUS_SCALING
 	if (panel_pixclock_freq > 65000000)
 		/* pm_qos_rate should be in Khz */
 		pm_qos_rate = panel_pixclock_freq / 1000 ;

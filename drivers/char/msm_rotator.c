@@ -251,8 +251,8 @@ int msm_rotator_iommu_map_buf(int mem_id, unsigned char src,
 		pr_err("ion_import_fd() failed\n");
 		return PTR_ERR(*pihdl);
 	}
-	pr_debug("%s(): ion_hdl %p, ion_buf %p\n", __func__, *pihdl,
-		ion_share(msm_rotator_dev->client, *pihdl));
+
+	pr_debug("%s(): ion_hdl %p, ion_fd %d\n", __func__, *pihdl, mem_id);
 
 	if (rot_iommu_split_domain)
 		domain = src ? ROTATOR_SRC_DOMAIN : ROTATOR_DST_DOMAIN;
@@ -2448,6 +2448,13 @@ static int __devexit msm_rotator_remove(struct platform_device *plat_dev)
 #ifdef CONFIG_PM
 static int msm_rotator_suspend(struct platform_device *dev, pm_message_t state)
 {
+#if defined(CONFIG_ARCH_MSM8X60)
+    /* fixed that bottom current is high after rotator is started */
+#ifdef CONFIG_MSM_BUS_SCALING
+    msm_bus_scale_client_update_request(msm_rotator_dev->bus_client_handle, 0);
+#endif
+#endif
+
 	rot_wait_for_commit_queue(true);
 	mutex_lock(&msm_rotator_dev->imem_lock);
 	if (msm_rotator_dev->imem_clk_state == CLK_EN
