@@ -6970,6 +6970,13 @@ static struct pmic8058_led pmic8058_flash_leds[] = {
 		.max_brightness = 15,
 		.id		= PMIC8058_ID_FLASH_LED_1,
 	},
+#if defined(CONFIG_MACH_MSM8X60_EF39S)||defined(CONFIG_MACH_MSM8X60_EF40K)||defined(CONFIG_MACH_MSM8X60_EF40S)||defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+    [2] = {
+        .name		= "keyboard-backlight",
+        .max_brightness = 3,
+        .id		= PMIC8058_ID_LED_KB_LIGHT,
+    },
+#endif /* CONFIG_MACH_MSM8X60_PRESTO ... */
 };
 
 static struct pmic8058_leds_platform_data pm8058_flash_leds_data = {
@@ -11226,7 +11233,7 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 		pm8058_platform_data.leds_pdata = &pm8058_flash_leds_data;
 
 	if (machine_is_msm8x60_ffa() || machine_is_msm8x60_fusn_ffa() ||
-		machine_is_msm8x60_dragon()) {
+		machine_is_msm8x60_dragon() || machine_is_msm8x60_presto()) {//JcK
 		pm8058_platform_data.vibrator_pdata = &pm8058_vib_pdata;
 	}
 
