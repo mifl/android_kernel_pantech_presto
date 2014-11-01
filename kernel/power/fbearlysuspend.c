@@ -13,7 +13,9 @@
  *
  */
 
+#ifdef CONFIG_PRESTO_CRT_OFF_ANIMATION
 #include <linux/delay.h>
+#endif
 #include <linux/earlysuspend.h>
 #include <linux/module.h>
 #include <linux/wait.h>
@@ -31,17 +33,22 @@ static enum {
 	FB_STATE_DRAWING_OK,
 } fb_state;
 
-int fbearlysuspend_delay = 50; 
+#ifdef CONFIG_PRESTO_CRT_OFF_ANIMATION
+int fbearlysuspend_delay = 50;
+#endif
+ 
 /* tell userspace to stop drawing, wait for it to stop */
 static void stop_drawing_early_suspend(struct early_suspend *h)
 {
 	int ret;
 	unsigned long irq_flags;
 
+#ifdef CONFIG_PRESTO_CRT_OFF_ANIMATION
 /* FIXME: earlysuspend breaks androids CRT-off animation
 * Sleep a little bit to get it played properly */
 
         msleep(fbearlysuspend_delay);
+#endif
 
 	spin_lock_irqsave(&fb_state_lock, irq_flags);
 	fb_state = FB_STATE_REQUEST_STOP_DRAWING;
