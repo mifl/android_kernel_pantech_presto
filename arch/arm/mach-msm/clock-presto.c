@@ -3627,7 +3627,11 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("core_clk",		gsbi7_qup_clk.c,	"qup_i2c.4"),
 	CLK_LOOKUP("core_clk",		gsbi8_qup_clk.c,	"qup_i2c.3"),
 	CLK_LOOKUP("core_clk",		gsbi9_qup_clk.c,	"qup_i2c.2"),
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 
+    CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"qup_i2c.21"),
+#else /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"spi_qsd.1"),
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	CLK_LOOKUP("core_clk",		gsbi11_qup_clk.c,	NULL),
 	CLK_LOOKUP("gsbi_qup_clk",	gsbi12_qup_clk.c,	"msm_dsps"),
 	CLK_LOOKUP("core_clk",		gsbi12_qup_clk.c,	"qup_i2c.5"),
@@ -3663,7 +3667,11 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("iface_clk",		gsbi8_p_clk.c,		"qup_i2c.3"),
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c, "msm_serial_hsl.1"),
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c,		"qup_i2c.2"),
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020
+    CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"qup_i2c.21"),
+#else /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"spi_qsd.1"),
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	CLK_LOOKUP("iface_clk",		gsbi11_p_clk.c,		NULL),
 	CLK_LOOKUP("iface_clk",		gsbi12_p_clk.c,		NULL),
 	CLK_LOOKUP("iface_clk",		gsbi12_p_clk.c, "msm_serial_hsl.0"),

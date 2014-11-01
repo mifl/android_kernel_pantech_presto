@@ -26,6 +26,12 @@
 #include <sound/q6afe.h>
 #include "snddev_ecodec.h"
 
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 // jmlee
+#include "snd_presto_audience_a2020.h"
+#include <mach/pmic.h>  //20110224 jhsong
+int ecodec_audience_enable = 0;
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+
 #define ECODEC_SAMPLE_RATE 8000
 
 /* Context for each external codec device */
@@ -166,6 +172,9 @@ static int snddev_ecodec_open(struct msm_snddev_info *dev_info)
 	int rc;
 	struct snddev_ecodec_drv_state *drv = &snddev_ecodec_drv;
 	union afe_port_config afe_config;
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 // jmlee	
+    struct snddev_ecodec_state *ecodec;
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 	pr_debug("%s\n", __func__);
 
@@ -227,6 +236,16 @@ static int snddev_ecodec_open(struct msm_snddev_info *dev_info)
 	drv->ref_cnt++;
 	mutex_unlock(&drv->dev_lock);
 
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 // jmlee	
+    /* audience enable */
+    ecodec = dev_info->private_data;
+    if ((ecodec->data->pamp_on) && (!ecodec_audience_enable))
+    {
+        ecodec->data->pamp_on();
+        ecodec_audience_enable = 1;
+    }
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+
 	return 0;
 
 err_clk:
@@ -242,6 +261,9 @@ err_rx_afe:
 int snddev_ecodec_close(struct msm_snddev_info *dev_info)
 {
 	struct snddev_ecodec_drv_state *drv = &snddev_ecodec_drv;
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 // jmlee
+    struct snddev_ecodec_state *ecodec;
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 	pr_debug("%s: closing %s\n", __func__, dev_info->name);
 
@@ -253,6 +275,16 @@ int snddev_ecodec_close(struct msm_snddev_info *dev_info)
 		mutex_unlock(&drv->dev_lock);
 		return -EPERM;
 	}
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 // jmlee
+    /* audience disable */
+    ecodec = dev_info->private_data;
+    if (ecodec->data->pamp_off && (ecodec_audience_enable))
+    {
+        ecodec->data->pamp_off();
+        ecodec_audience_enable = 0;
+    }
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 	drv->ref_cnt--;
 

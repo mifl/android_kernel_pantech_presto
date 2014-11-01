@@ -69,6 +69,8 @@
 #include <mach/gpiomux.h>
 #ifdef CONFIG_MSM_DSPS
 #include <mach/msm_dsps.h>
+#else
+#include <linux/clk.h>
 #endif
 #include <mach/msm_xo.h>
 #include <mach/msm_bus_board.h>
@@ -110,6 +112,14 @@
 #ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
 #include <linux/i2c-gpio.h>
 #endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 //jmlee
+#include "./qdsp6v2/snd_presto_audience_a2020.h"
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_FAB2200  // jmlee 20110505 add
+#include "./qdsp6v2/snd_presto_sub_fab2200.h"
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_FAB2200 */
 
 #define MSM_SHARED_RAM_PHYS 0x40000000
 
@@ -822,6 +832,22 @@ static struct i2c_board_info msm_isa1200_board_info[] = {
 	},
 };
 #endif
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_FAB2200  // jmlee 20110505 add
+static struct i2c_board_info msm_audio_i2c_board_info[] __initdata = {
+    {
+        I2C_BOARD_INFO("fab2200-amp", 	FAB2200_SLAVE_ADDR),
+    }
+};
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_FAB2200 */
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 //jmlee
+static struct i2c_board_info msm_audience_i2c_board_info[] = {
+    {
+        I2C_BOARD_INFO("audience-a2020", 	A2020_SLAVE_ADDR),
+    }
+};
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 #if defined(CONFIG_BATTERY_BQ27520) || \
 		defined(CONFIG_BATTERY_BQ27520_MODULE)
@@ -1648,6 +1674,169 @@ static struct platform_device android_usb_device = {
 
 
 #endif
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020
+#define I2C_SCL_AUDIENCE     73
+#define I2C_SDA_AUDIENCE     72
+static uint32_t audience_gpio_table[] = {
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // 20111014 jmlee 
+    /* I2C_SCL */
+    GPIO_CFG(I2C_SCL_AUDIENCE, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
+    /* I2C_SDA */
+    GPIO_CFG(I2C_SDA_AUDIENCE, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+    GPIO_CFG(GPIO_MIC_SEL_SEL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),  // 20111102 jmlee test code
+    GPIO_CFG(GPIO_NR_AMP_EN, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+    GPIO_CFG(GPIO_NR_OUT_SEL, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),  // 20111102 jmlee test code   
+    GPIO_CFG(GPIO_NR_WAKEUP_N, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),  // GPIO_NR_WAKEUP_N
+    GPIO_CFG(GPIO_NR_RESET_N, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),  // GPIO_NR_RESET_N
+#if (BOARD_REV > WS10) // Presto NR CLK_IN TP Test ws20 remove boot err
+    GPIO_CFG(GPIO_XO_OUT_D0_EN, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), // pull down , eS310 CLK_IN enable pin
+#endif /* (BOARD_REV > WS10) */
+};
+
+#if (BOARD_REV > WS10)   // Presto NR CLK_IN TP Test ws20 remove boot err
+static struct regulator *snddev_reg_l2_audience;
+static struct msm_xo_voter *audience_clock;
+
+// presto 8058_l2 always on
+int audience_pmic_clk_vreg_on(void)
+{
+    int rc = 0;
+    printk("[Snd_audience_a2020] audience_pmic_clk_vreg_on ==> START  \n");
+
+    snddev_reg_l2_audience = regulator_get(NULL, "8058_l2");
+    if (IS_ERR(snddev_reg_l2_audience)) {
+        printk("[Snd_audience_a2020] vreg_enable failed(%s) = %d \n", "8058_l2", rc);
+    }
+
+    rc = regulator_set_voltage(snddev_reg_l2_audience, 1800000, 1800000);
+    if (rc < 0)
+        printk("[Snd_audience_a2020] vreg_enable failed(%s) = %d \n", "8058_l2", rc);
+
+    rc = regulator_enable(snddev_reg_l2_audience);
+    if (rc < 0)
+        printk("[Snd_audience_a2020] vreg_enable failed(%s) = %d \n",    "8058_l2", rc);
+
+    audience_clock = msm_xo_get(MSM_XO_TCXO_D0, "audience_clk");
+
+    rc = msm_xo_mode_vote(audience_clock, MSM_XO_MODE_ON);
+
+    if (rc < 0) {
+        printk("[Snd_audience_a2020] Failed to vote for TCXO_DO ON\n");
+        pr_err("Failed to vote for TCXO_DO ON\n");
+    }
+
+    msleep(10);
+
+    rc = msm_xo_mode_vote(audience_clock, MSM_XO_MODE_PIN_CTRL);
+
+    if (rc < 0) {
+        pr_err("Failed to vote for TCXO_DO pin control\n");
+    }
+
+    printk("[Snd_audience_a2020] audience_pmic_clk_vreg_on ==> END rc : %d  \n",rc);
+
+    return rc;
+}
+#endif /* (BOARD_REV > WS10) */
+
+static int __init snddev_PAN_audio_gpio_init(void)
+{
+    int rc = 0;
+    int i;
+    for (i = 0; i < ARRAY_SIZE(audience_gpio_table); ++i)
+    {
+        rc = gpio_tlmm_config(audience_gpio_table[i], GPIO_CFG_ENABLE);
+        if ( rc ) {
+            printk(KERN_ERR "%s: Failed toAudience i2c gpio_tlmm_config(%d)=%d\r\n", __func__, i, rc);
+        }
+    }
+
+#if (BOARD_REV > WS10)    // Presto NR CLK_IN TP Test ws20 remove boot err
+    audience_pmic_clk_vreg_on();
+    gpio_request(GPIO_XO_OUT_D0_EN, "GPIO_XO_OUT_D0_EN");
+    gpio_direction_output(GPIO_XO_OUT_D0_EN,1);  //high
+#endif /* (BOARD_REV > WS10) */
+
+    gpio_request(GPIO_NR_RESET_N, "GPIO_NR_RESET_N");
+    gpio_direction_output(GPIO_NR_RESET_N,1);  //high
+    config_GPIO_NR_RESET_N(1);
+
+    gpio_request(GPIO_NR_WAKEUP_N, "GPIO_NR_WAKEUP_N");
+    gpio_direction_output(GPIO_NR_WAKEUP_N,0);  // low
+    config_GPIO_NR_WAKEUP_N(0);
+
+    gpio_request(GPIO_MIC_SEL_SEL, "GPIO_MIC_SEL_SEL");
+    gpio_direction_output(GPIO_MIC_SEL_SEL,0);  // low
+    config_GPIO_MIC_SEL_SEL(0);
+
+    gpio_request(GPIO_NR_AMP_EN, "GPIO_NR_AMP_EN");
+    gpio_direction_output(GPIO_NR_AMP_EN,0);  // low
+    config_GPIO_NR_AMP_EN(0);
+
+    gpio_request(GPIO_NR_OUT_SEL, "GPIO_NR_OUT_SEL");
+    gpio_direction_output(GPIO_NR_OUT_SEL,0);  // low
+    config_GPIO_NR_OUT_SEL(0);
+
+    return rc;
+}
+
+void msm_snddev_mic_sel_a2020(void)
+{
+    config_GPIO_MIC_SEL_SEL(0);
+    pr_info(" #@#@#@#@#@#@#@#@# mic selection A2020\n");
+}
+
+int msm_snddev_mic_sel_QTR(void)
+{
+    config_GPIO_MIC_SEL_SEL(1);
+    pr_info(" #@#@#@#@#@#@#@#@# mic selection QTR\n");
+    return 0;
+}
+
+void msm_snddev_nr_receiver_amp_on(void)
+{
+    config_GPIO_NR_AMP_EN(1);	
+    pr_info(" #@#@#@#@#@#@#@#@# nr_receiver_amp_on\n");
+}
+
+void msm_snddev_nr_receiver_amp_off(void)
+{
+    config_GPIO_NR_AMP_EN(0);	
+    pr_info(" #@#@#@#@#@#@#@#@# nr_receiver_amp_off\n");
+}
+
+int msm_snddev_nr_out_sel_qtrReceiver_or_A2020Speaker(void)
+{
+    config_GPIO_NR_OUT_SEL(0);	
+    pr_info(" #@#@#@#@#@#@#@#@# nr_out_sel_qtrReceiver_or_A2020Speaker\n");
+    return 0;
+}
+
+void msm_snddev_nr_out_sel_A2020Reciever(void)
+{
+    config_GPIO_NR_OUT_SEL(1);	
+    pr_info(" #@#@#@#@#@#@#@#@# nr_out_sel_A2020Reciever\n");
+}
+
+int msm_snddev_nr_out_sel_A2020Reciever_nr_receiver_amp_on(void)
+{
+    config_GPIO_NR_OUT_SEL(1);
+    pr_info(" #@#@#@#@#@#@#@#@# nr_out_sel_A2020Reciever\n");
+    config_GPIO_NR_AMP_EN(1);	
+    pr_info(" #@#@#@#@#@#@#@#@# nr_receiver_amp_on\n");
+    return 0;
+}
+
+void msm_snddev_nr_out_sel_A2020Reciever_nr_receiver_amp_off(void)
+{
+    config_GPIO_NR_OUT_SEL(1);
+    pr_info(" #@#@#@#@#@#@#@#@# nr_out_sel_A2020Reciever\n");
+    config_GPIO_NR_AMP_EN(0);	
+    pr_info(" #@#@#@#@#@#@#@#@# nr_receiver_amp_on\n");
+}
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 #ifdef CONFIG_MSM_VPE
 #ifndef CONFIG_MSM_CAMERA_V4L2
@@ -2818,6 +3007,14 @@ static struct msm_i2c_platform_data msm_gsbi9_qup_i2c_pdata = {
 	.msm_i2c_config_gpio = gsbi_qup_i2c_gpio_config,
 };
 
+#if defined(CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee 
+static struct msm_i2c_platform_data msm_gsbi10_qup_i2c_pdata = {
+    .clk_freq = 400000,
+    .src_clk_rate = 24000000,
+    .msm_i2c_config_gpio = gsbi_qup_i2c_gpio_config,
+};
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+
 static struct msm_i2c_platform_data msm_gsbi12_qup_i2c_pdata = {
 	.clk_freq = 100000,
 	.src_clk_rate = 24000000,
@@ -2831,9 +3028,11 @@ static struct msm_spi_platform_data msm_gsbi1_qup_spi_pdata = {
 	.max_clock_speed = 24000000,
 };
 
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020
 static struct msm_spi_platform_data msm_gsbi10_qup_spi_pdata = {
 	.max_clock_speed = 24000000,
 };
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 #endif
 
 #ifdef CONFIG_I2C_SSBI
@@ -5561,6 +5760,9 @@ static struct platform_device *surf_devices[] __initdata = {
 	&msm_gsbi7_qup_i2c_device,
 	&msm_gsbi8_qup_i2c_device,
 	&msm_gsbi9_qup_i2c_device,
+#if defined(CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee 
+    &msm_gsbi10_qup_i2c_device,
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	&msm_gsbi12_qup_i2c_device,
 #endif
 #if defined(CONFIG_SERIAL_MSM_HS) || defined(CONFIG_PANTECH_BT) //lsi@ps2.bluez
@@ -7761,6 +7963,22 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
 		ARRAY_SIZE(smb137b_charger_i2c_info),
 	},
 #endif
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_FAB2200  // jmlee 20110505 add
+    {
+        I2C_SURF | I2C_FFA | I2C_FLUID,
+        MSM_GSBI3_QUP_I2C_BUS_ID,
+        msm_audio_i2c_board_info,
+        ARRAY_SIZE(msm_audio_i2c_board_info),
+    },
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_FAB2200 */
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // 20111014 jmlee 
+    {
+        I2C_SURF | I2C_FFA | I2C_FLUID,
+        MSM_GSBI10_QUP_I2C_BUS_ID,
+        msm_audience_i2c_board_info,
+        ARRAY_SIZE(msm_audience_i2c_board_info),
+    },
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 #if defined(CONFIG_BATTERY_BQ27520) || \
 		defined(CONFIG_BATTERY_BQ27520_MODULE)
 	{
@@ -7895,6 +8113,9 @@ static void __init msm8x60_init_buses(void)
 	}
 #endif
 	msm_gsbi9_qup_i2c_device.dev.platform_data = &msm_gsbi9_qup_i2c_pdata;
+#if defined(CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020)  // 20111014 jmlee 
+    msm_gsbi10_qup_i2c_device.dev.platform_data = &msm_gsbi10_qup_i2c_pdata;
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	msm_gsbi12_qup_i2c_device.dev.platform_data = &msm_gsbi12_qup_i2c_pdata;
 #endif
 #if defined(CONFIG_SPI_QUP) || defined(CONFIG_SPI_QUP_MODULE)
@@ -7917,10 +8138,12 @@ static void __init msm8x60_init_buses(void)
 	 defined(CONFIG_SMB137B_CHARGER_MODULE)))
 		msm_otg_pdata.vbus_power = msm_hsusb_smb137b_vbus_power;
 #endif
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110505 add
 #if defined(CONFIG_SPI_QUP) || defined(CONFIG_SPI_QUP_MODULE)
 		msm_gsbi10_qup_spi_device.dev.platform_data =
 					&msm_gsbi10_qup_spi_pdata;
 #endif
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 	}
 
 #if defined(CONFIG_USB_GADGET_MSM_72K) || defined(CONFIG_USB_EHCI_HCD)
@@ -11063,7 +11286,11 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 
 #if defined(CONFIG_SPI_QUP) || defined(CONFIG_SPI_QUP_MODULE)
 	if (machine_is_msm8x60_fluid())
+{
+#ifndef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020  // jmlee 20110505 add
 		platform_device_register(&msm_gsbi10_qup_spi_device);
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
+}
 	else
 		platform_device_register(&msm_gsbi1_qup_spi_device);
 #endif
@@ -11083,6 +11310,17 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 			= GPIO_ETHERNET_RESET_N_DRAGON;
 
 	platform_device_register(&smsc911x_device);
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_FAB2200  // jmlee 20110505 add
+    snd_subsystem_Init();
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_FAB2200 */
+
+#ifdef CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 //jmlee
+    snddev_PAN_audio_gpio_init();
+#if (BOARD_REV > WS10)  // Presto NR CLK_IN ==> changed with ws20  // jmlee Audience clk err, so test code modify
+    snd_audience_a2020_api_Init();
+#endif /* BOARD_REV > WS10 */
+#endif /* CONFIG_PANTECH_AUDIO_PRESTO_AUDIENCE2020 */
 
 #if defined(CONFIG_MACH_MSM8X60_PRESTO)
     sensors_power_up();
