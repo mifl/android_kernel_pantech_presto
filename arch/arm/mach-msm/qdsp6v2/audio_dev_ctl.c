@@ -82,6 +82,10 @@ struct audio_copp_topology {
 };
 static struct audio_copp_topology adm_tx_topology_tbl;
 
+#ifdef CONFIG_SKY_CHARGING   //kobj 110513
+extern void msm_charger_set_current_incall(unsigned int in_call);
+#endif /* CONFIG_SKY_CHARGING */
+
 int msm_reset_all_device(void)
 {
 	int rc = 0;
@@ -1381,6 +1385,14 @@ void broadcast_event(u32 evt_id, u32 dev_id, u64 session_id)
 	else
 		return;
 	mutex_lock(&session_lock);
+
+#ifdef CONFIG_SKY_CHARGING  //kobj 110513
+    if(evt_id == AUDDEV_EVT_START_VOICE)
+        msm_charger_set_current_incall(true);
+
+    if(evt_id == AUDDEV_EVT_END_VOICE)
+        msm_charger_set_current_incall(false);
+#endif /* CONFIG_SKY_CHARGING */
 
 	if (evt_id == AUDDEV_EVT_VOICE_STATE_CHG)
 		routing_info.voice_state = dev_id;

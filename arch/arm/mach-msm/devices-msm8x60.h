@@ -49,6 +49,10 @@ extern struct platform_device msm_lpa_pcm;
 extern struct platform_device msm_pcm_hostless;
 #endif
 
+#ifdef CONFIG_SKY_BATTERY_MAX17040   // p14682 kobj  110607 
+#define MSM_GSBI11_QUP_I2C_BUS_ID	16
+#endif /* CONFIG_SKY_BATTERY_MAX17040 */
+
 #ifdef CONFIG_SPI_QUP
 extern struct platform_device msm_gsbi1_qup_spi_device;
 extern struct platform_device msm_gsbi10_qup_spi_device;

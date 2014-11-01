@@ -20,6 +20,9 @@
 #include <linux/irq.h>
 #include <linux/msm_ssbi.h>
 #include <linux/mfd/core.h>
+#ifdef CONFIG_SKY_CHARGING
+#include <mach/board-msm8660.h>
+#endif /* CONFIG_SKY_CHARGING */
 #include <linux/mfd/pmic8058.h>
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/msm_adc.h>
@@ -171,6 +174,9 @@ static const struct resource pm8058_charger_resources[] __devinitconst = {
 	SINGLE_IRQ_RESOURCE("BATT_REPLACE",	PM8058_BATT_REPLACE_IRQ),
 	SINGLE_IRQ_RESOURCE("BATTCONNECT",	PM8058_BATTCONNECT_IRQ),
 	SINGLE_IRQ_RESOURCE("VBATDET_LOW",	PM8058_VBATDET_LOW_IRQ),
+#ifdef CONFIG_SKY_CHARGING	
+    SINGLE_IRQ_RESOURCE("BATT_ID_CHANGED",	PM8058_BATT_ID_IRQ),
+#endif /* CONFIG_SKY_CHARGING */
 };
 
 static struct mfd_cell pm8058_charger_cell __devinitdata = {

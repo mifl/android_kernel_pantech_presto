@@ -101,6 +101,9 @@
 #define PM8058_OSCHALT_IRQ		PM8058_IRQ_BLOCK_BIT(4, 6)
 #define PM8058_CBLPWR_IRQ		PM8058_IRQ_BLOCK_BIT(4, 3)
 #define PM8058_RESOUT_IRQ		PM8058_IRQ_BLOCK_BIT(6, 4)
+#ifdef CONFIG_SKY_CHARGING
+#define PM8058_BATT_ID_IRQ		PM8058_IRQ_BLOCK_BIT(16, XOADC_MPP_8)
+#endif /* CONFIG_SKY_CHARGING */
 
 struct pmic8058_charger_data {
 	unsigned int max_source_current;

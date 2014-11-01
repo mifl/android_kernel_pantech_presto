@@ -149,6 +149,22 @@ config BATTERY_DA9030
 	  Say Y here to enable support for batteries charger integrated into
 	  DA9030 PMIC.
 
+config SKY_CHARGING
+    bool "SKY CHARGING"
+    depends on MACH_MSM8X60_PRESTO
+    default y
+    help
+      Support SKY CHARGING
+
+config SKY_BATTERY_MAX17040
+    bool "SKY_BATTERY_MAX17040"
+    depends on CUST_SKY_H
+    default y
+    help
+      SKY MAX17040 is fuel-gauge systems for lithium-ion (Li+) batteries
+      in handheld and portable equipment. The MAX17040 is configured
+      to operate with a single lithium cell
+
 config BATTERY_MAX17040
 	tristate "Maxim MAX17040 Fuel Gauge"
 	depends on I2C
@@ -269,6 +285,13 @@ config ISL9519_CHARGER
 	  charger cable and is preferred way of charging the battery because
 	  of its high current rating.
 	  Choose Y if you are compiling for Qualcomm's msm8x60 surf/ffa board.
+
+config SKY_SMB_CHARGER
+    bool "SKY SMB136S"
+    default n
+    depends on (MACH_MSM8X60_EF39S || MACH_MSM8X60_EF40K || MACH_MSM8X60_EF40S)
+    help
+      Support SKY SMB136S
 
 config SMB137B_CHARGER
 	tristate "smb137b charger"

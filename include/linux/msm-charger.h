@@ -16,6 +16,11 @@
 #include <linux/power_supply.h>
 
 enum {
+//pz1946 20110904 battery remove issue
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+    CHG_TYPE_NONE,
+    CHG_TYPE_FACTORY,
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
 	CHG_TYPE_USB,
 	CHG_TYPE_AC
 };
@@ -72,6 +77,9 @@ struct msm_battery_gauge {
 	int (*is_battery_present) (void);
 	int (*is_battery_temp_within_range) (void);
 	int (*is_battery_id_valid) (void);
+#ifdef CONFIG_SKY_CHARGING  //kobj 110513
+    int (*is_factory_cable) (void);
+#endif /* CONFIG_SKY_CHARGING */
 	int (*get_battery_status)(void);
 	int (*get_batt_remaining_capacity) (void);
 	int (*monitor_for_recharging) (void);
