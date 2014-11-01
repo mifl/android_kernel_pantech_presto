@@ -107,6 +107,10 @@
 #include <linux/ion.h>
 #include <mach/ion.h>
 
+#ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
+#include <linux/i2c-gpio.h>
+#endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
+
 #define MSM_SHARED_RAM_PHYS 0x40000000
 #define MDM2AP_SYNC 129
 
@@ -278,6 +282,30 @@ struct pm8xxx_mpp_init_info {
 		.control	= PM8XXX_MPP_##_control, \
 	} \
 }
+
+#ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
+#define GPIO_TKI_SCL      52
+#define GPIO_TKI_SDA      51
+static struct i2c_gpio_platform_data i2c_gpio_tki_data = {
+    .scl_pin = GPIO_TKI_SCL,
+    .sda_pin = GPIO_TKI_SDA,
+    .udelay = 5,    /* 100 KHz */
+};
+
+struct platform_device msm_device_i2c_gpio_tki = {
+    .name = "i2c-gpio",
+    .id = MSM_TKI_I2C_BUS_ID,
+    .dev = {
+        .platform_data = &i2c_gpio_tki_data,
+    }
+};
+
+static struct i2c_board_info i2c_tki_devices[] __initdata = {
+    {
+        I2C_BOARD_INFO("tki-i2c", 0x20),
+    },
+};
+#endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 
 /*
  * The UI_INTx_N lines are pmic gpio lines which connect i2c
@@ -4329,7 +4357,11 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 	RPM_LDO(PM8058_L16, 1, 1, 0, 1800000, 1800000, LDO300HMIN),
 	RPM_LDO(PM8058_L17, 0, 1, 0, 2600000, 2600000, LDO150HMIN),
 	RPM_LDO(PM8058_L18, 0, 1, 0, 2200000, 2200000, LDO150HMIN),
+#if defined(CONFIG_TOUCHSCREEN_MELFAS_TKI)
+    RPM_LDO(PM8058_L19, 0, 1, 0, 3300000, 3300000, LDO150HMIN),
+#else /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 	RPM_LDO(PM8058_L19, 0, 1, 0, 2500000, 2500000, LDO150HMIN),
+#endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 	RPM_LDO(PM8058_L20, 0, 1, 0, 1800000, 1800000, LDO150HMIN),
 	RPM_LDO(PM8058_L21, 1, 1, 0, 1200000, 1200000, LDO150HMIN),
 	RPM_LDO(PM8058_L22, 0, 1, 0, 1150000, 1150000, LDO300HMIN),
@@ -5500,6 +5532,10 @@ static struct platform_device *surf_devices[] __initdata = {
 #ifdef CONFIG_HW_RANDOM_MSM
 	&msm_device_rng,
 #endif
+
+#ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
+    &msm_device_i2c_gpio_tki,
+#endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 
 	&msm_tsens_device,
 	&msm_rpm_device,
@@ -10737,6 +10773,11 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 			= GPIO_ETHERNET_RESET_N_DRAGON;
 
 	platform_device_register(&smsc911x_device);
+
+#ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
+    i2c_register_board_info(MSM_TKI_I2C_BUS_ID, i2c_tki_devices,
+        ARRAY_SIZE(i2c_tki_devices));
+#endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
 
 #if (defined(CONFIG_SPI_QUP)) && \
 	(defined(CONFIG_FB_MSM_LCDC_SAMSUNG_OLED_PT) || \
