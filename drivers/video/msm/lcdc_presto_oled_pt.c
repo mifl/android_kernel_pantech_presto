@@ -206,7 +206,7 @@ static struct samsung_spi_data etc_sequence[] = {
 };
 #endif
 
-static struct samsung_state_type samsung_state = { .brightness = 180};
+static struct samsung_state_type samsung_state = { .brightness = 180 };
 static struct msm_panel_common_pdata *lcdc_samsung_pdata;
 
 #if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto
@@ -215,18 +215,18 @@ static struct msm_panel_common_pdata *lcdc_samsung_pdata;
 #define LCD_RESET 157
 
 static uint32_t lcdc_gpio_config[] = {
-	GPIO_CFG(LCD_RESET, 0,
-			GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+    GPIO_CFG(LCD_RESET, 0,
+    GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 };
 
 static void lcdc_gpio_init(int enable)
 {
-	int n;
-	for (n = 0; n < ARRAY_SIZE(lcdc_gpio_config); ++n)
-		gpio_tlmm_config(lcdc_gpio_config[n], 0);
+    int n;
+    for (n = 0; n < ARRAY_SIZE(lcdc_gpio_config); ++n)
+        gpio_tlmm_config(lcdc_gpio_config[n], 0);
 }
-#endif
-	
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+
 #ifndef CONFIG_SPI_QUP
 static void samsung_spi_write_byte(boolean dc, u8 data)
 {
@@ -253,7 +253,7 @@ static void samsung_spi_write_byte(boolean dc, u8 data)
 
 }
 
-#if 0 //EJ 
+#if !defined(CONFIG_MACH_MSM8X60_PRESTO)
 static void samsung_spi_read_bytes(u8 cmd, u8 *data, int num)
 {
 	int bnum;
@@ -297,11 +297,11 @@ static void samsung_spi_read_bytes(u8 cmd, u8 *data, int num)
 	udelay(2);
 	gpio_set_value(spi_cs, 1);
 }
-#endif
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 #endif
 
 #ifdef DEBUG
-#if 0
+#if !defined(CONFIG_MACH_MSM8X60_PRESTO)
 static const char *byte_to_binary(const u8 *buf, int len)
 {
 	static char b[32*8+1];
@@ -317,7 +317,7 @@ static const char *byte_to_binary(const u8 *buf, int len)
 
 	return b;
 }
-#endif
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 #endif
 
 #define BIT_OFFSET	(bit_size % 8)
@@ -454,7 +454,9 @@ static int samsung_serigo_list(struct samsung_spi_data *data, int count)
 		rc = samsung_serigo(*data);
 		if (rc)
 			return rc;
-		//msleep(10);
+#if !defined(CONFIG_MACH_MSM8X60_PRESTO)
+		msleep(10);
+#endif /* !CONFIG_MACH_MSM8X60_PRESTO */
 	}
 	return 0;
 }
@@ -471,7 +473,9 @@ static void samsung_spi_init(void)
 	gpio_set_value(spi_mosi, 0);
 
 	/* Set the Chip Select deasserted (active low) */
-	//gpio_set_value(spi_cs, 1);
+#if !defined(CONFIG_MACH_MSM8X60_PRESTO)
+	gpio_set_value(spi_cs, 1);
+#endif /* !CONFIG_MACH_MSM8X60_PRESTO */
 }
 #endif
 
@@ -481,68 +485,6 @@ static void samsung_disp_powerup(void)
 		samsung_state.disp_powered_up = TRUE;
 }
 
-#if !defined(CONFIG_MACH_MSM8X60_PRESTO) && !defined(CONFIG_MACH_MSM8X60_QUANTINA)
-static struct work_struct disp_on_delayed_work;
-static void samsung_disp_on_delayed_work(struct work_struct *work_ptr)
-{
-	/* 0x01: Software Reset */
-	samsung_write_cmd(0x01);
-	msleep(120);
-
-	msleep(300);
-	samsung_serigo_list(panel_sequence,
-		sizeof(panel_sequence)/sizeof(*panel_sequence));
-	samsung_serigo_list(display_sequence,
-		sizeof(display_sequence)/sizeof(*display_sequence));
-
-	switch (samsung_state.brightness) {
-	case 300:
-		samsung_serigo_list(gamma_sequence_300,
-			sizeof(gamma_sequence_300)/sizeof(*gamma_sequence_300));
-		break;
-	case 180:
-	default:
-		samsung_serigo_list(gamma_sequence_180,
-			sizeof(gamma_sequence_180)/sizeof(*gamma_sequence_180));
-		break;
-	case 80:
-		samsung_serigo_list(gamma_sequence_80,
-			sizeof(gamma_sequence_80)/sizeof(*gamma_sequence_80));
-		break;
-	}
-
-	samsung_serigo_list(etc_sequence,
-		sizeof(etc_sequence)/sizeof(*etc_sequence));
-
-	/* 0x11: Sleep Out */
-	samsung_write_cmd(0x11);
-	msleep(120);
-	/* 0x13: Normal Mode On */
-	samsung_write_cmd(0x13);
-
-#ifndef CONFIG_SPI_QUP
-	{
-		u8 data;
-
-		msleep(120);
-		/* 0x0A: Read Display Power Mode */
-		samsung_spi_read_bytes(0x0A, &data, 1);
-		pr_info("%s: power=[%s]\n", __func__,
-			byte_to_binary(&data, 1));
-
-		msleep(120);
-		/* 0x0C: Read Display Pixel Format */
-		samsung_spi_read_bytes(0x0C, &data, 1);
-		pr_info("%s: pixel-format=[%s]\n", __func__,
-			byte_to_binary(&data, 1));
-	}
-#endif
-	msleep(120);
-	/* 0x29: Display On */
-	samsung_write_cmd(0x29);
-}
-
-#else
 static void pantech_samsung_disp_on(void)
 {
 	/* 0x01: Software Reset */
@@ -561,47 +503,15 @@ static void pantech_samsung_disp_on(void)
 	/* 0x11: Sleep Out */
 	samsung_write_cmd(0x11);
 
-#if 0
-	/* 0x13: Normal Mode On */
-	msleep(120);	
-	samsung_write_cmd(0x13);
-#endif//EJ
-
-#if 0//KSK
-#ifndef CONFIG_SPI_QUP
-	{
-		u8 data;
-
-		msleep(120);
-		/* 0x0A: Read Display Power Mode */
-		samsung_spi_read_bytes(0x0A, &data, 1);
-		pr_info("%s: power=[%s]\n", __func__,
-			byte_to_binary(&data, 1));
-
-		msleep(120);
-		/* 0x0C: Read Display Pixel Format */
-		samsung_spi_read_bytes(0x0C, &data, 1);
-		pr_info("%s: pixel-format=[%s]\n", __func__,
-			byte_to_binary(&data, 1));
-	}
-#endif
-#endif
-
 	msleep(120);
 	/* 0x29: Display On */
-	samsung_write_cmd(0x29);	
+	samsung_write_cmd(0x29);
 }
-#endif
 
 static void samsung_disp_on(void)
 {
 	if (samsung_state.disp_powered_up && !samsung_state.display_on) {
-#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto	
 		pantech_samsung_disp_on();
-#else
-		INIT_WORK(&disp_on_delayed_work, samsung_disp_on_delayed_work);
-		schedule_work(&disp_on_delayed_work);
-#endif
 		samsung_state.display_on = TRUE;
 	}
 }
@@ -616,27 +526,23 @@ static int lcdc_samsung_panel_on(struct platform_device *pdev)
 		onlyone = 1;
 		lcdc_sam_init_temp();
 	}
-#ifdef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX 		
-	if (samsung_state.display_on == false) {	
-#endif		
-
-#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kej for PRESTO
+#ifdef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX
+	if (samsung_state.display_on == false) {
+#endif
 		gpio_set_value(LCD_RESET, GPIO_LOW_VALUE);
 		mdelay(6);
 		gpio_set_value(LCD_RESET, GPIO_HIGH_VALUE);
-		mdelay(12);   
-#endif
+		mdelay(12);
 
-	if (!samsung_state.disp_initialized) {
+		if (!samsung_state.disp_initialized) {
 #ifndef CONFIG_SPI_QUP
-		lcdc_samsung_pdata->panel_config_gpio(1);
-		samsung_spi_init();
+			lcdc_samsung_pdata->panel_config_gpio(1);
+			samsung_spi_init();
 #endif
-		samsung_disp_powerup();
-		samsung_disp_on();
-		samsung_state.disp_initialized = TRUE;
-		
-#ifdef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX	
+			samsung_disp_powerup();
+			samsung_disp_on();
+			samsung_state.disp_initialized = TRUE;
+#ifdef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX
 		}
 #endif
 	}
@@ -662,20 +568,22 @@ static int lcdc_samsung_panel_off(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_SKY_CHARGING
 static int old_bl_level = 0;
 extern unsigned int sky_charging_status(void);
+#endif /* CONFIG_SKY_CHARGING */
 #ifdef PANTECH_OLED_BL_CONTROL
 static void lcdc_samsung_oled_set_backlight(struct msm_fb_data_type *mfd)
 {
 	pr_info("%s  bl_level = %d \n", __func__,mfd->bl_level);
 
 	if(mfd->bl_level > 0 &&  old_bl_level == 0)
-	{	
+	{
 		old_bl_level = mfd->bl_level;
 		samsung_write_cmd(0x13);	/* 0x13: Normal Mode On */
-		msleep(20);		
+		msleep(20);
 	}
-	
+
 	switch (mfd->bl_level) {
 	case 14:
 		samsung_serigo_list(gamma_sequence_300,
@@ -686,11 +594,9 @@ static void lcdc_samsung_oled_set_backlight(struct msm_fb_data_type *mfd)
 			sizeof(gamma_sequence_280)/sizeof(*gamma_sequence_280));
 		break;
 	case 12:
-			
 		samsung_serigo_list(gamma_sequence_260,
 			sizeof(gamma_sequence_260)/sizeof(*gamma_sequence_260));
 		break;
-
 	case 11:
 		samsung_serigo_list(gamma_sequence_240,
 			sizeof(gamma_sequence_240)/sizeof(*gamma_sequence_240));
@@ -699,11 +605,10 @@ static void lcdc_samsung_oled_set_backlight(struct msm_fb_data_type *mfd)
 		samsung_serigo_list(gamma_sequence_220,
 			sizeof(gamma_sequence_220)/sizeof(*gamma_sequence_220));
 		break;
-	case 9:			
+	case 9:
 		samsung_serigo_list(gamma_sequence_200,
 			sizeof(gamma_sequence_200)/sizeof(*gamma_sequence_200));
 		break;
-
 	case 8:
 		samsung_serigo_list(gamma_sequence_180,
 			sizeof(gamma_sequence_180)/sizeof(*gamma_sequence_180));
@@ -712,10 +617,10 @@ static void lcdc_samsung_oled_set_backlight(struct msm_fb_data_type *mfd)
 		samsung_serigo_list(gamma_sequence_160,
 			sizeof(gamma_sequence_160)/sizeof(*gamma_sequence_160));
 		break;
-	case 6:		
+	case 6:
 		samsung_serigo_list(gamma_sequence_140,
 			sizeof(gamma_sequence_140)/sizeof(*gamma_sequence_140));
-		break;		
+		break;
 	case 5:
 	default:
 		samsung_serigo_list(gamma_sequence_120,
@@ -725,19 +630,18 @@ static void lcdc_samsung_oled_set_backlight(struct msm_fb_data_type *mfd)
 		samsung_serigo_list(gamma_sequence_100,
 			sizeof(gamma_sequence_100)/sizeof(*gamma_sequence_100));
 		break;
-	case 3:			
+	case 3:
 		samsung_serigo_list(gamma_sequence_80,
 			sizeof(gamma_sequence_80)/sizeof(*gamma_sequence_80));
 		break;
-	case 2:			
+	case 2:
 		samsung_serigo_list(gamma_sequence_60,
 			sizeof(gamma_sequence_60)/sizeof(*gamma_sequence_60));
 		break;
-	case 1:			
+	case 1:
 		samsung_serigo_list(gamma_sequence_40,
 			sizeof(gamma_sequence_40)/sizeof(*gamma_sequence_40));
-		break;		
-
+		break;
 #ifdef CONFIG_F_SKYDISP_BEAM_ON_BUG_FIX
 	case 0:
 		//lcdc_samsung_panel_off(mfd->pdev);
@@ -745,19 +649,16 @@ static void lcdc_samsung_oled_set_backlight(struct msm_fb_data_type *mfd)
 		{
 			old_bl_level = 0;
 			samsung_write_cmd(0x22);	/* 0x22:  pixel off */
-
-			if (sky_charging_status()) 
-				msleep(100);  
+			if (sky_charging_status())
+				msleep(100);
 			else
 				msleep(50);
 		}
 		break;
 #endif
-	}	
+	}
 }
-#endif
-
-
+#endif /* PANTECH_OLED_BL_CONTROL */
 
 #ifdef SYSFS_DEBUG_CMD
 static ssize_t samsung_rda_cmd(struct device *dev,
@@ -795,7 +696,7 @@ static struct msm_fb_panel_data samsung_panel_data = {
 	.off = lcdc_samsung_panel_off,
 #ifdef PANTECH_OLED_BL_CONTROL
 	.set_backlight = lcdc_samsung_oled_set_backlight,
-#endif	
+#endif
 };
 
 static int __devinit samsung_probe(struct platform_device *pdev)
@@ -807,7 +708,9 @@ static int __devinit samsung_probe(struct platform_device *pdev)
 	int rc;
 #endif
 
-	lcdc_gpio_init(1);
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // panel_init for PRESTO
+    lcdc_gpio_init(1);
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 
 	pr_info("%s: id=%d\n", __func__, pdev->id);
 	lcdc_samsung_pdata = pdev->dev.platform_data;
@@ -820,13 +723,13 @@ static int __devinit samsung_probe(struct platform_device *pdev)
 	pinfo->wait_cycle = 0;
 	pinfo->bpp = 24;
 	pinfo->fb_num = 2;
-	pinfo->clk_rate = 24000000; /* Max 27.77MHz */
-#ifdef PANTECH_OLED_BL_CONTROL	
-	pinfo->bl_max = 10; //12 -> 6  for power saving
-#else
+#if defined(PANTECH_OLED_BL_CONTROL)
+    pinfo->clk_rate = 24000000; /* Max 27.77MHz */
+    pinfo->bl_max = 10; //12 -> 6  for power saving
+#else /* PANTECH_OLED_BL_CONTROL */
+	pinfo->clk_rate = 25600000; /* Max 27.77MHz */
 	pinfo->bl_max = 15;
-#endif
-
+#endif /* PANTECH_OLED_BL_CONTROL */
 	pinfo->bl_min = 1;
 
 	/* AMS367PE02 Operation Manual, Page 7 */
@@ -842,38 +745,6 @@ static int __devinit samsung_probe(struct platform_device *pdev)
 	pinfo->lcdc.underflow_clr = 0xff;
 	pinfo->lcdc.hsync_skew = 0;
 	pdev->dev.platform_data = &samsung_panel_data;
-#if 0
-#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // panel_init for PRESTO
-	lcdc_gpio_init(1);
-	pr_info("%s: lcdc_gpio_init_for_kernelMimage\n", __func__);
-	mdelay(5);
-	gpio_set_value(LCD_RESET, GPIO_HIGH_VALUE);
-	pr_info("%s: gpio_set_value_kernel_image\n", __func__);
-#endif
-
-#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto
-	gpio_set_value(LCD_RESET, GPIO_LOW_VALUE);
-       pr_info("%s: reset_low_for_kernel_image\n", __func__);
-	mdelay(6);
-	gpio_set_value(LCD_RESET, GPIO_HIGH_VALUE);
-	pr_info("%s: reset_high_for_kernelMimage\n", __func__);
-	mdelay(12);   
-#endif
-	if (!samsung_state.disp_initialized) {
-#ifndef CONFIG_SPI_QUP
-		lcdc_samsung_pdata->panel_config_gpio(1);
-		pr_info("%s:panel_config_gpio_kernelMimage\n", __func__);
-		samsung_spi_init();
-		pr_info("%s: samsung_spi_init_kernelMimage\n", __func__);
-#endif
-		samsung_disp_powerup();
-		pr_info("%s: samsung_disp_powerup_for_kernelMimage\n", __func__);
-		samsung_disp_on();
-		samsung_state.disp_initialized = TRUE;
-	}
-	samsung_serigo_list(gamma_sequence_300,
-			sizeof(gamma_sequence_300)/sizeof(*gamma_sequence_300));
-#endif
 
 #ifndef SYSFS_DEBUG_CMD
 	msm_fb_add_device(pdev);
@@ -916,42 +787,6 @@ static struct platform_driver this_driver = {
 	.driver.name	= "lcdc_samsung_oled",
 };
 
-#if 0
-static int __init lcdc_samsung_panel_init(void)
-{
-	int ret;
-#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto
-	lcdc_gpio_init(1);
-	mdelay(5);
-	gpio_set_value(LCD_RESET, GPIO_HIGH_VALUE);
-#endif
-
-#ifdef CONFIG_FB_MSM_LCDC_AUTO_DETECT
-	if (msm_fb_detect_client("lcdc_samsung_oled")) {
-		pr_err("%s: detect failed\n", __func__);
-		return 0;
-	}
-#endif
-	ret = platform_driver_register(&this_driver);
-	if (ret) {
-		pr_err("%s: driver register failed, rc=%d\n", __func__, ret);
-		return ret;
-	}
-
-#ifdef CONFIG_SPI_QUP
-	ret = spi_register_driver(&lcdc_samsung_spi_driver);
-
-	if (ret) {
-		pr_err("%s: spi register failed: rc=%d\n", __func__, ret);
-		platform_driver_unregister(&this_driver);
-	} else
-		pr_info("%s: SUCCESS (SPI)\n", __func__);
-#else
-	pr_info("%s: SUCCESS (BitBang)\n", __func__);
-#endif
-	return ret;
-}
-#else
 static int __init lcdc_samsung_panel_init(void)
 {
 	int ret;
@@ -962,16 +797,13 @@ static int __init lcdc_samsung_panel_init(void)
 	}
 	return ret;
 }
-#endif
 
 static int lcdc_sam_init_temp(void)
 {
 	int ret = 0;
 	pr_info("%s\n", __func__);
-#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)  // kkcho_temp_presto
 	lcdc_gpio_init(1);
 	mdelay(5);
-#endif
 
 #ifdef CONFIG_SPI_QUP
 	ret = spi_register_driver(&lcdc_samsung_spi_driver);
@@ -985,7 +817,6 @@ static int lcdc_sam_init_temp(void)
 	pr_info("%s: SUCCESS (BitBang)\n", __func__);
 #endif
 	return ret;
-
 }
 module_init(lcdc_samsung_panel_init);
 static void __exit lcdc_samsung_panel_exit(void)
