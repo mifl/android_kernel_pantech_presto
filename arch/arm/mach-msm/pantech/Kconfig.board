@@ -72,4 +72,7 @@ config AVOID_COMPILE_ERRORS
 	bool "Patch to avoid kernel compile errors"
 	default n
 
+config BUG_FIX_LCD_YUV_REVERSE
+	bool
+
 comment "Continued the standard kernel"
