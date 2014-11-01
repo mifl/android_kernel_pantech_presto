@@ -23,6 +23,10 @@
 #define MSM_SSBI2_I2C_BUS_ID     7
 #define MSM_SSBI3_I2C_BUS_ID     8
 
+#ifdef CONFIG_TOUCHSCREEN_MELFAS_TKI
+#define MSM_TKI_I2C_BUS_ID 12
+#endif /* CONFIG_TOUCHSCREEN_MELFAS_TKI */
+
 #ifdef CONFIG_SND_SOC_MSM8660_APQ
 extern struct platform_device msm_pcm;
 extern struct platform_device msm_pcm_routing;
