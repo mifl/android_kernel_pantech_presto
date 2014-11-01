@@ -143,9 +143,15 @@ static struct usb_interface_descriptor rmnet_sdio_interface_desc = {
 	.bDescriptorType =      USB_DT_INTERFACE,
 	/* .bInterfaceNumber = DYNAMIC */
 	.bNumEndpoints =        3,
+#ifdef CONFIG_ANDROID_PANTECH_USB
+    .bInterfaceClass =      USB_CLASS_VENDOR_SPEC,
+    .bInterfaceSubClass =   0xF0,
+    .bInterfaceProtocol =   0x00,
+#else /* CONFIG_ANDROID_PANTECH_USB */
 	.bInterfaceClass =      USB_CLASS_VENDOR_SPEC,
 	.bInterfaceSubClass =   USB_CLASS_VENDOR_SPEC,
 	.bInterfaceProtocol =   USB_CLASS_VENDOR_SPEC,
+#endif /* CONFIG_ANDROID_PANTECH_USB */
 	/* .iInterface = DYNAMIC */
 };
 
@@ -1255,6 +1261,9 @@ static int rmnet_sdio_set_alt(struct usb_function *f,
 	struct usb_composite_dev *cdev = dev->cdev;
 	int ret = 0;
 
+#ifdef CONFIG_ANDROID_PANTECH_USB
+	printk("rmnet_sdio_set_alt \n");
+#endif /* CONFIG_ANDROID_PANTECH_USB */
 	dev->epin->driver_data = dev;
 	usb_ep_enable(dev->epin, ep_choose(cdev->gadget,
 				&rmnet_sdio_hs_in_desc,
@@ -1284,6 +1293,10 @@ static int rmnet_sdio_set_alt(struct usb_function *f,
 	atomic_set(&dev->online, 1);
 
 	ret = rmnet_sdio_start_io(dev);
+
+#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+    usb_interface_enum_cb(RMNET_TYPE_FLAG);
+#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
 
 	return ret;
 
@@ -1475,6 +1488,9 @@ int rmnet_sdio_function_add(struct usb_configuration *c)
 {
 	struct rmnet_sdio_dev *dev;
 	int ret;
+#ifdef CONFIG_ANDROID_PANTECH_USB
+	printk("rmnet_sdio_function_add \n");
+#endif /* CONFIG_ANDROID_PANTECH_USB */
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (!dev)

@@ -46,6 +46,10 @@
 #include <linux/uaccess.h>
 #include <linux/wakelock.h>
 
+#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+#include "f_pantech_android.h"
+#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
+
 static const char driver_name[] = "msm72k_udc";
 
 /* #define DEBUG */
@@ -277,6 +281,16 @@ static enum usb_device_state msm_hsusb_get_state(void)
 	return state;
 }
 
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)
+// choi -->
+int get_udc_state(void)
+{
+    return the_usb_info->sdev.state;
+}
+EXPORT_SYMBOL(get_udc_state);
+// choi --<
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
+
 static ssize_t print_switch_name(struct switch_dev *sdev, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%s\n", DRIVER_NAME);
@@ -296,7 +310,11 @@ static inline enum chg_type usb_get_chg_type(struct usb_info *ui)
 		return USB_CHG_TYPE__SDP;
 }
 
+#ifdef CONFIG_SKY_CHARGING  //kobj 110513
+#define USB_WALLCHARGER_CHG_CURRENT 700//900 // p14682 kobj 110711 chagne
+#else /* CONFIG_SKY_CHARGING */
 #define USB_WALLCHARGER_CHG_CURRENT 1800
+#endif /* CONFIG_SKY_CHARGING */
 static int usb_get_max_power(struct usb_info *ui)
 {
 	struct msm_otg *otg = to_msm_otg(ui->xceiv);
@@ -321,6 +339,14 @@ static int usb_get_max_power(struct usb_info *ui)
 
 	if (temp == USB_CHG_TYPE__WALLCHARGER)
 		return USB_WALLCHARGER_CHG_CURRENT;
+
+#if defined(CONFIG_SKY_CHARGING) || defined(CONFIG_SKY_SMB_CHARGER)// P14682 kobj 110620 
+    if(suspended && (temp == USB_CHG_TYPE__SDP))
+        return 500;
+
+    if((ui->usb_state == USB_STATE_ADDRESS) && (temp == USB_CHG_TYPE__SDP))
+        return 500;		
+#endif /* CONFIG_SKY_CHARGING || CONFIG_SKY_SMB_CHARGER */
 
 	if (suspended || !configured)
 		return 0;
@@ -427,6 +453,10 @@ static void usb_chg_detect(struct work_struct *w)
 
 	temp = usb_get_chg_type(ui);
 	spin_unlock_irqrestore(&ui->lock, flags);
+
+#ifdef CONFIG_SKY_CHARGING  //kobj 110513
+    dev_info(&ui->pdev->dev, "[SKY CHG]usb_chg_detect %d, chg_type %d\n", ui->usb_state, temp);
+#endif /* CONFIG_SKY_CHARGING */
 
 	atomic_set(&otg->chg_type, temp);
 	maxpower = usb_get_max_power(ui);
@@ -2258,6 +2288,10 @@ static int msm72k_udc_vbus_session(struct usb_gadget *_gadget, int is_active)
 		wake_lock(&ui->wlock);
 
 	msm_hsusb_set_vbus_state(is_active);
+#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+    if(is_active)
+        usb_connect_cb();
+#endif /* CONFIG_ANDROID_PANTECH_USB_MANAGER */
 	return 0;
 }
 
@@ -2484,7 +2518,11 @@ static ssize_t show_usb_chg_type(struct device *dev,
 	return count;
 }
 static DEVICE_ATTR(wakeup, S_IWUSR, 0, usb_remote_wakeup);
+#if defined(CONFIG_ANDROID_PANTECH_USB)
+static DEVICE_ATTR(usb_state, S_IRUSR | S_IRGRP | S_IROTH, show_usb_state, 0);
+#else /* CONFIG_ANDROID_PANTECH_USB */
 static DEVICE_ATTR(usb_state, S_IRUSR, show_usb_state, 0);
+#endif /* CONFIG_ANDROID_PANTECH_USB */
 static DEVICE_ATTR(usb_speed, S_IRUSR, show_usb_speed, 0);
 static DEVICE_ATTR(chg_type, S_IRUSR, show_usb_chg_type, 0);
 static DEVICE_ATTR(chg_current, S_IWUSR | S_IRUSR,

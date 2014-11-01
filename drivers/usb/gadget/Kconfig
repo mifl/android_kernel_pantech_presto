@@ -1169,4 +1169,25 @@ config USB_ANDROID_RMNET_CTRL_SMD
 	 transfers. This option enables only control interface.
 	 Data interface used is BAM.
 
+config ANDROID_PANTECH_USB
+    bool "PANTECH USB"
+    depends on CUST_SKY_H
+    default y
+    help
+      Support Pantech USB
+
+config  ANDROID_PANTECH_USB_MANAGER
+    depends on ANDROID_PANTECH_USB
+    bool "PANTECH USB Manager"
+    default y
+    help
+      Support Pantech USB Manager
+
+config ANDROID_PANTECH_USB_FACTORY_CABLE
+    bool "PANTECH USB FACTORY CABLE"
+    depends on ANDROID_PANTECH_USB
+    default y
+    help
+      Support Pantech USB
+
 endif # USB_GADGET

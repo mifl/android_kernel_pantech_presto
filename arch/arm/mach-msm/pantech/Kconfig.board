@@ -75,4 +75,7 @@ config AVOID_COMPILE_ERRORS
 config BUG_FIX_LCD_YUV_REVERSE
 	bool
 
+config FEATURE_SKY_PDL_DLOAD
+	bool
+
 comment "Continued the standard kernel"

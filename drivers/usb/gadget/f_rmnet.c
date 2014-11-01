@@ -22,6 +22,18 @@
 #include "u_rmnet.h"
 #include "gadget_chips.h"
 
+#ifdef CONFIG_ANDROID_PANTECH_USB
+/*
+ * when RMNET driver reopen, SMD channel open fail
+ * by Pantech Inc.(xsemiyas)
+ */
+#define FEATURE_PANTECH_RMNET_REOPEN_DELAY
+#endif /* CONFIG_ANDROID_PANTECH_USB */
+
+#ifdef FEATURE_PANTECH_RMNET_REOPEN_DELAY
+#include <linux/workqueue.h>
+#endif /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
+
 #define RMNET_NOTIFY_INTERVAL	5
 #define RMNET_MAX_NOTIFY_SIZE	sizeof(struct usb_cdc_notification)
 
@@ -59,6 +71,10 @@ struct f_rmnet {
 	struct list_head		cpkt_resp_q;
 	atomic_t			notify_count;
 	unsigned long			cpkts_len;
+#ifdef FEATURE_PANTECH_RMNET_REOPEN_DELAY
+    struct delayed_work connect_work;
+    struct delayed_work disconnect_work;
+#endif /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
 };
 
 #define NR_RMNET_PORTS	1
@@ -426,6 +442,15 @@ static void frmnet_unbind(struct usb_configuration *c, struct usb_function *f)
 	kfree(f->name);
 }
 
+#ifdef FEATURE_PANTECH_RMNET_REOPEN_DELAY
+static void rmnet_disconnect_work(struct work_struct *w)
+{
+    struct f_rmnet *dev = container_of(w, struct f_rmnet, disconnect_work.work);
+    if(!atomic_read(&dev->online))
+    gport_rmnet_disconnect(dev);
+}
+#endif /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
+
 static void frmnet_disable(struct usb_function *f)
 {
 	struct f_rmnet *dev = func_to_rmnet(f);
@@ -449,8 +474,25 @@ static void frmnet_disable(struct usb_function *f)
 	atomic_set(&dev->notify_count, 0);
 	spin_unlock_irqrestore(&dev->lock, flags);
 
+#ifdef FEATURE_PANTECH_RMNET_REOPEN_DELAY
+    schedule_delayed_work(&dev->disconnect_work, msecs_to_jiffies(50));
+#else /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
 	gport_rmnet_disconnect(dev);
+#endif /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
 }
+
+#ifdef FEATURE_PANTECH_RMNET_REOPEN_DELAY
+static void rmnet_connect_work(struct work_struct *w)
+{
+    int ret = 0;
+    struct f_rmnet *dev = container_of(w, struct f_rmnet, connect_work.work);
+    atomic_set(&dev->online, 1);
+    if(atomic_read(&dev->online))
+    ret = gport_rmnet_connect(dev);
+    if(ret == -ENODEV)
+        schedule_delayed_work(&dev->connect_work, msecs_to_jiffies(50));
+}
+#endif /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
 
 static int
 frmnet_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
@@ -486,7 +528,11 @@ frmnet_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 	dev->port.out_desc = ep_choose(cdev->gadget,
 			dev->hs.out, dev->fs.out);
 
+#ifdef FEATURE_PANTECH_RMNET_REOPEN_DELAY
+    schedule_delayed_work(&dev->connect_work, msecs_to_jiffies(50));
+#else /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
 	ret = gport_rmnet_connect(dev);
+#endif /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
 
 	atomic_set(&dev->online, 1);
 
@@ -786,6 +832,18 @@ static int frmnet_bind(struct usb_configuration *c, struct usb_function *f)
 	struct usb_composite_dev	*cdev = c->cdev;
 	int				ret = -ENODEV;
 
+#ifdef CONFIG_ANDROID_PANTECH_USB
+    if(pantech_usb_carrier != CARRIER_QUALCOMM){
+        rmnet_interface_desc.bInterfaceClass =      USB_CLASS_VENDOR_SPEC;
+        rmnet_interface_desc.bInterfaceSubClass =   0xF0;
+        rmnet_interface_desc.bInterfaceProtocol =   0x00;
+    }else{
+        rmnet_interface_desc.bInterfaceClass =      USB_CLASS_VENDOR_SPEC;
+        rmnet_interface_desc.bInterfaceSubClass =   USB_CLASS_VENDOR_SPEC;
+        rmnet_interface_desc.bInterfaceProtocol =   USB_CLASS_VENDOR_SPEC;
+    }
+#endif /* CONFIG_ANDROID_PANTECH_USB */
+
 	dev->ifc_id = usb_interface_id(c, f);
 	if (dev->ifc_id < 0) {
 		pr_err("%s: unable to allocate ifc id, err:%d",
@@ -1040,6 +1098,11 @@ static int frmnet_init_port(const char *ctrl_name, const char *data_name)
 		goto fail_probe;
 	}
 	nr_rmnet_ports++;
+
+#ifdef FEATURE_PANTECH_RMNET_REOPEN_DELAY
+    INIT_DELAYED_WORK(&dev->disconnect_work, rmnet_disconnect_work);
+    INIT_DELAYED_WORK(&dev->connect_work, rmnet_connect_work);
+#endif /* FEATURE_PANTECH_RMNET_REOPEN_DELAY */
 
 	return 0;
 
