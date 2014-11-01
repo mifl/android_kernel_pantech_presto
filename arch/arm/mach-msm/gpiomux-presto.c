@@ -608,12 +608,14 @@ static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#ifndef CONFIG_PANTECH_BT
 	{
 		.gpio      = 128,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#endif /* CONFIG_PANTECH_BT */
 	{
 		.gpio      = 129,
 		.settings = {
@@ -659,12 +661,14 @@ static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#ifndef CONFIG_PANTECH_BT
 	{
 		.gpio      = 138,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
 	},
+#endif /* CONFIG_PANTECH_BT */
 	{
 		.gpio      = 139,
 		.settings = {
