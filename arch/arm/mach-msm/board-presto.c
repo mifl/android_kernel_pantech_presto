@@ -6810,6 +6810,49 @@ static int pm8058_gpios_init(void)
 				.inv_int_pol	= 0,
 			}
 		},
+//20101015 choiseulkee add for uart console, PM8058 UART MUX GPIO config
+#ifdef CONFIG_SKY_GSBI12_UART_CONSOLE
+        { /* UART_TX3 : PM8058 GPIO_23 */
+            PM8058_GPIO_PM_TO_SYS(22),
+            {
+                .direction      = PM_GPIO_DIR_OUT,
+                .pull           = PM_GPIO_PULL_NO,//PM_GPIO_PULL_DN,
+                .vin_sel        = 5, //PM_GPIO_VIN_L6,
+                .function       = PM_GPIO_FUNC_2,
+                .inv_int_pol    = 0,
+            }
+        },
+        { /* UART_RX3 : PM8058 GPIO_35 */
+            PM8058_GPIO_PM_TO_SYS(34),
+            {
+                .direction      = PM_GPIO_DIR_IN,
+                .pull           = PM_GPIO_PULL_NO,//PM_GPIO_PULL_DN,
+                .vin_sel        = 5, //PM_GPIO_VIN_L6,
+                .function       = PM_GPIO_FUNC_NORMAL,//PM_GPIO_FUNC_2,
+                .inv_int_pol    = 0,
+            }
+        },
+        { /* UART_M_TX : PM8058 GPIO_36 */
+            PM8058_GPIO_PM_TO_SYS(35),
+            {
+                .direction      = PM_GPIO_DIR_IN,
+                .pull           = PM_GPIO_PULL_NO,//PM_GPIO_PULL_DN,
+                .vin_sel        = 2, //PM_GPIO_VIN_S3,
+                .function       = PM_GPIO_FUNC_NORMAL,//PM_GPIO_FUNC_2,
+                .inv_int_pol    = 0,
+            }
+        },
+        { /* UART_M_RX : PM8058 GPIO_37 */
+            PM8058_GPIO_PM_TO_SYS(36),
+            {
+                .direction      = PM_GPIO_DIR_OUT,
+                .pull           = PM_GPIO_PULL_NO,//PM_GPIO_PULL_DN,
+                .vin_sel        = 2, //PM_GPIO_VIN_S3,
+                .function       = PM_GPIO_FUNC_2,
+                .inv_int_pol    = 0,
+            }
+        }
+#else /* CONFIG_SKY_GSBI12_UART_CONSOLE */
 		{ /* PMIC ID interrupt */
 			PM8058_GPIO_PM_TO_SYS(36),
 			{
@@ -8506,8 +8549,21 @@ static void register_i2c_devices(void)
 #endif
 }
 
+//20101015 choiseulkee add for uart console, GSBI12 port UART GPIO config
+#ifdef CONFIG_SKY_GSBI12_UART_CONSOLE
+static uint32_t uart12_config_gpio[] = {
+    GPIO_CFG(117, 2, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+    GPIO_CFG(118, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+};
+#endif /* CONFIG_SKY_GSBI12_UART_CONSOLE */
 static void __init msm8x60_init_uart12dm(void)
 {
+//20101015 choiseulkee add for uart console, GSBI12 port UART GPIO config
+#ifdef CONFIG_SKY_GSBI12_UART_CONSOLE
+    pr_info("%s: GSBI12 port uart12_config_gpio configuration\n", __func__);
+    gpio_tlmm_config(uart12_config_gpio[0], GPIO_CFG_ENABLE);
+    gpio_tlmm_config(uart12_config_gpio[1], GPIO_CFG_ENABLE);
+#else /* CONFIG_SKY_GSBI12_UART_CONSOLE */
 #if !defined(CONFIG_USB_PEHCI_HCD) && !defined(CONFIG_USB_PEHCI_HCD_MODULE)
 	/* 0x1D000000 now belongs to EBI2:CS3 i.e. USB ISP Controller */
 	void *fpga_mem = ioremap_nocache(0x1D000000, SZ_4K);
@@ -8526,6 +8582,7 @@ static void __init msm8x60_init_uart12dm(void)
 	mb();
 	iounmap(fpga_mem);
 #endif
+#endif /* CONFIG_SKY_GSBI12_UART_CONSOLE */
 }
 
 #define MSM_GSBI9_PHYS		0x19900000
