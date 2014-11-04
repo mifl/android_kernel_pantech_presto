@@ -35,7 +35,7 @@ config BCMDHD_WEXT
 config DHD_USE_STATIC_BUF
 	bool "Enable memory preallocation"
 	depends on BCMDHD
-	default n
+	default y
 	---help---
 	  Use memory preallocated in platform
 
