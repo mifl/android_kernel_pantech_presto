@@ -2,8 +2,30 @@
 # Include the specific Kconfig file for Pantech boards
 #
 
+# PRESTO
+source "arch/arm/mach-msm/pantech/presto/Kconfig"
+
 config MACH_PANTECH_DUMMY
 	depends on CUST_SKY_H
 	bool "NONE (No device)"
+
+config PANTECH
+	bool "PANTECH Common Configuration"
+	default y
+	help
+	  Use this config to add codes or avoid orphan codes, that's
+	  not labeled with a: CONFIG or FEATURE
+
+config PANTECH_ATNT
+	bool
+	help
+	  Support PANTECH
+
+config PANTECH_QUANTINA_BOARD
+	bool "PANTECH_QUANTINA_BOARD Configuration"
+
+config AVOID_COMPILE_ERRORS
+	bool "Patch to avoid kernel compile errors"
+	default n
 
 comment "Continued the standard kernel"

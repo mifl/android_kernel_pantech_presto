@@ -6,13 +6,21 @@ CFLAGS_scm.o :=$(call as-instr,.arch_extension sec,-DREQUIRES_SEC=1)
 # clock-8x60.o, devices-msm8x60.o and gpiomux-8x60.o.
 #
 
-# Default QCOM names
-ACPUCLOCK_OBJ_NAME:=acpuclock-8x60.o
-BOARD_OBJ_NAME:=board-msm8x60.o
-BOARD_CAMERA_OBJ_NAME:=board-msm8x60-camera.o
-CLOCK_OBJ_NAME:=clock-8x60.o
-DEVICES_OBJ_NAME:=devices-msm8x60.o
-GPIOMUX_OBJ_NAME:=gpiomux-8x60.o
+ifdef CONFIG_MACH_MSM8X60_PRESTO
+    ACPUCLOCK_OBJ_NAME:=acpuclock-presto.o
+    BOARD_OBJ_NAME:=board-presto.o
+    BOARD_CAMERA_OBJ_NAME:=board-presto-camera.o
+    CLOCK_OBJ_NAME:=clock-presto.o
+    DEVICES_OBJ_NAME:=devices-presto.o
+    GPIOMUX_OBJ_NAME:=gpiomux-presto.o
+else
+    ACPUCLOCK_OBJ_NAME:=acpuclock-8x60.o
+    BOARD_OBJ_NAME:=board-msm8x60.o
+    BOARD_CAMERA_OBJ_NAME:=board-msm8x60-camera.o
+    CLOCK_OBJ_NAME:=clock-8x60.o
+    DEVICES_OBJ_NAME:=devices-msm8x60.o
+    GPIOMUX_OBJ_NAME:=gpiomux-8x60.o
+endif
 
 obj-y += io.o dma.o memory.o
 ifndef CONFIG_ARM_ARCH_TIMER
@@ -223,6 +231,7 @@ obj-$(CONFIG_MACH_MSM8X60_FLUID) += $(BOARD_OBJ_NAME)
 obj-$(CONFIG_MACH_MSM8X60_DRAGON) += $(BOARD_OBJ_NAME)
 obj-$(CONFIG_MACH_TYPE_MSM8X60_FUSION) += $(BOARD_OBJ_NAME) mdm.o
 obj-$(CONFIG_MACH_MSM8X60_FUSN_FFA) += $(BOARD_OBJ_NAME) mdm.o
+obj-$(CONFIG_MACH_MSM8X60_PRESTO) += $(BOARD_OBJ_NAME) mdm.o
 obj-$(CONFIG_TROUT_H2W) += board-trout-h2w.o
 obj-$(CONFIG_TROUT_BATTCHG) += htc_battery.o
 obj-$(CONFIG_TROUT_PWRSINK) += htc_pwrsink.o
