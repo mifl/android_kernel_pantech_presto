@@ -10,9 +10,6 @@
 #include <linux/ioctl.h>
 #include <linux/blk_types.h>
 #include <linux/types.h>
-#ifdef __KERNEL__
-#include <linux/migrate_mode.h>
-#endif
 
 /*
  * It's silly to have NR_OPEN bigger than NR_FILE, but you can change
