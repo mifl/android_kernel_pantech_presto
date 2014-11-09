@@ -22,6 +22,15 @@ static struct gpiomux_setting console_uart = {
 };
 
 /* The SPI configurations apply to GSBI1 and GSBI10 */
+
+#if (defined(CONFIG_MACH_MSM8X60_PRESTO)) //GSBI1 PROXIMETER SENSOR
+static struct gpiomux_setting gsbi1 = {
+    .func = GPIOMUX_FUNC_1,
+    .drv = GPIOMUX_DRV_8MA,
+    .pull = GPIOMUX_PULL_NONE,
+};
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+
 static struct gpiomux_setting spi_active = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
@@ -334,11 +343,13 @@ static struct gpiomux_setting hdmi_active_1_cfg = {
 	.pull = GPIOMUX_PULL_UP,
 };
 
+#if !defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530)	
 static struct gpiomux_setting hdmi_active_2_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_16MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 */
 
 static struct gpiomux_setting hdmi_active_3_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -450,6 +461,7 @@ static struct gpiomux_setting mdm2ap_vddmin_suspend_cfg = {
 };
 
 static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
+#if !defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530)
 	{
 		.gpio      = 33,
 		.settings = {
@@ -457,6 +469,7 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 */
 	{
 		.gpio      = 34,
 		.settings = {
@@ -1431,6 +1444,7 @@ static struct msm_gpiomux_config msm8x60_hdmi_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
 	},
+#if !defined(CONFIG_PANTECH_PRESTO_SENSORS_YAS530)	
 	{
 		.gpio = 170,
 		.settings = {
@@ -1445,6 +1459,7 @@ static struct msm_gpiomux_config msm8x60_hdmi_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &hdmi_suspend_cfg,
 		},
 	},
+#endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 */
 	{
 		.gpio = 172,
 		.settings = {
