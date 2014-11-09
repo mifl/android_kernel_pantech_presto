@@ -1,0 +1,20 @@
+config MACH_MSM8X60_PRESTO
+	depends on ARCH_MSM8X60
+	default n
+	bool "MSM8X60 PRESTO"
+	select CUST_SKY_H
+	select DEFINE_LIST_PRESTO
+	help
+	  Support for the Pantech MSM8x60 PRESTO project board.
+
+if MACH_MSM8X60_PRESTO
+config DEFINE_LIST_PRESTO
+	bool
+	default y
+	select PANTECH
+	select PANTECH_ATNT
+	select PANTECH_PRESTO_BOARD
+endif
+
+config PANTECH_PRESTO_BOARD
+	bool "PANTECH_PRESTO_BOARD Configuration"

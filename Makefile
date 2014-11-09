@@ -375,6 +375,22 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-delete-null-pointer-checks \
                    -Wno-error=maybe-uninitialized \
                    -w
+
+######################################################################
+# SKY_ANDROID_FLAGS
+######################################################################
+# Android SKY cust Feature
+# Add START. by sungwook on 2010-05-07
+#----------------------------------------------------------------------
+KBUILD_CFLAGS   += "-include" $(PWD)"/include/BOARD_REV.h"
+KBUILD_CFLAGS   += $(SKY_KERNEL_FLAGS)
+#----------------------------------------------------------------------
+#20110819 choiseulkee add for kernel user build
+ifeq ($(TARGET_BUILD_VARIANT),user)
+KBUILD_CFLAGS   += -DTARGET_BUILD_USER
+endif
+#----------------------------------------------------------------------
+
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
