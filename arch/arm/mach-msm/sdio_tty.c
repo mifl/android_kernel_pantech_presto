@@ -294,10 +294,14 @@ static int sdio_tty_write_callback(struct tty_struct *tty,
 	}
 	ret = sdio_write(sdio_tty_drv->ch, buf, len);
 	if (ret) {
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+        return ret; // modified by JJinBBong, 20110920
+#else /* QCOM Original */
 		pr_err(SDIO_TTY_MODULE_NAME ": %s: sdio_write failed for "
 			"dev %s, ret=%d\n", __func__,
 			sdio_tty_drv->tty_dev_name, ret);
 		return 0;
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
 	}
 
 	sdio_tty_drv->total_tx += len;

@@ -147,6 +147,13 @@ struct irq_chip msm_gpio_irq_extn = {
 #define GPIO_INTR_CFG(gpio)       (MSM_TLMM_BASE + 0x1008 + (0x10 * (gpio)))
 #define GPIO_INTR_STATUS(gpio)    (MSM_TLMM_BASE + 0x100c + (0x10 * (gpio)))
 
+#ifdef CONFIG_USER_GPIO_CONTROL
+static int gpio_status[NR_MSM_GPIOS];
+static int gpio_getflag=1;	
+static int gpio_setflag=0;
+static int read_gpio_status=0;
+#endif /* CONFIG_USER_GPIO_CONTROL */
+
 /**
  * struct msm_gpio_dev: the MSM8660 SoC GPIO device structure
  *
@@ -172,6 +179,95 @@ struct msm_gpio_dev {
 };
 
 static DEFINE_SPINLOCK(tlmm_lock);
+
+#ifdef CONFIG_USER_GPIO_CONTROL
+static DEFINE_SPINLOCK(gpio_lock);
+
+int sky_gpio_get_sleep_cfg(void)
+{
+    int i;
+    unsigned long irq_flags;
+
+    if(gpio_getflag == 1) {
+        for(i=0; i<NR_MSM_GPIOS; i++)  {
+            gpio_status[i] = readl(GPIO_CONFIG(i));
+        }
+
+        spin_lock_irqsave(&gpio_lock, irq_flags);
+        gpio_getflag = 0;
+        read_gpio_status = 1;
+        spin_unlock_irqrestore(&gpio_lock, irq_flags);
+    }
+
+    return 0;
+}
+
+int sky_gpio_set_sleep_cfg(void)
+{
+    int i;
+    unsigned long irq_flags;
+
+    // read_gpio_status : 旋嬢亀 廃腰精 gpio_status研 石嬢醤幻 set 拝 呪 赤陥
+    if(gpio_setflag == 1 && read_gpio_status == 1) {
+        for(i=0; i<NR_MSM_GPIOS; i++)  {
+            writel(gpio_status[i], GPIO_CONFIG(i));
+        }
+
+        spin_lock_irqsave(&gpio_lock, irq_flags);
+        gpio_setflag = 0;
+        spin_unlock_irqrestore(&gpio_lock, irq_flags);
+    }
+
+    return 0;
+}
+
+int sky_user_set_sleep_gpio(int gpio)
+{
+    int gpio_num;
+    unsigned long irq_flags;
+
+    gpio_num = (gpio>>10) & 0xFF;
+
+    if(gpio_num >= NR_MSM_GPIOS) {
+        pr_err("%s : sleep gpio config err[%d]\n", __func__, gpio_num);
+        return -1;
+    }
+
+    if(read_gpio_status == 0) {
+        printk("The device must enter sleep at least once");
+    }
+
+    gpio_status[gpio_num] = gpio;
+
+    spin_lock_irqsave(&gpio_lock, irq_flags);
+    gpio_setflag = 1;
+    spin_unlock_irqrestore(&gpio_lock, irq_flags);
+
+    return 0;
+}
+
+EXPORT_SYMBOL(sky_user_set_sleep_gpio);
+
+int sky_user_get_sleep_gpio(int gpio)
+{
+    unsigned long irq_flags;
+
+    spin_lock_irqsave(&gpio_lock, irq_flags);
+    gpio_getflag = 1;
+    spin_unlock_irqrestore(&gpio_lock, irq_flags);
+
+    return gpio_status[gpio];
+}
+
+EXPORT_SYMBOL(sky_user_get_sleep_gpio);
+
+int sky_user_get_curr_gpio(int gpio)
+{
+    return readl(GPIO_CONFIG(gpio));
+}
+
+EXPORT_SYMBOL(sky_user_get_curr_gpio);
+#endif /* CONFIG_USER_GPIO_CONTROL */
 
 static inline struct msm_gpio_dev *to_msm_gpio_dev(struct gpio_chip *chip)
 {
@@ -515,6 +611,9 @@ static int __devinit msm_gpio_probe(void)
 	int i, irq, ret;
 
 	spin_lock_init(&tlmm_lock);
+#ifdef CONFIG_USER_GPIO_CONTROL
+    spin_lock_init(&gpio_lock);
+#endif /* CONFIG_USER_GPIO_CONTROL */
 	bitmap_zero(msm_gpio.enabled_irqs, NR_MSM_GPIOS);
 	bitmap_zero(msm_gpio.wake_irqs, NR_MSM_GPIOS);
 	bitmap_zero(msm_gpio.dual_edge_irqs, NR_MSM_GPIOS);
@@ -566,6 +665,10 @@ static int msm_gpio_suspend(void)
 		__msm_gpio_irq_unmask(i);
 	mb();
 	spin_unlock_irqrestore(&tlmm_lock, irq_flags);
+#ifdef CONFIG_USER_GPIO_CONTROL
+    sky_gpio_set_sleep_cfg();
+    sky_gpio_get_sleep_cfg();
+#endif /* CONFIG_USER_GPIO_CONTROL */
 	return 0;
 }
 

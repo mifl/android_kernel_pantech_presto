@@ -54,6 +54,13 @@ int msm_gpiomux_write(unsigned gpio, enum msm_gpiomux_setting which,
 		rec->sets[which] = NULL;
 	}
 
+/*for PRESTO p13777 for remove burnt*/ 
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) || defined(CONFIG_MACH_MSM8X60_QUANTINA)
+    if(gpio >= 0 && gpio<=27) {
+        rec->ref++;
+    }
+#endif /* CONFIG_MACH_MSM8X60_PRESTO || CONFIG_MACH_MSM8X60_QUANTINA */
+
 	new_set = rec->ref ? rec->sets[GPIOMUX_ACTIVE] :
 		rec->sets[GPIOMUX_SUSPENDED];
 	if (new_set)

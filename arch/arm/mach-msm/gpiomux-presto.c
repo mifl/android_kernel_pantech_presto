@@ -43,11 +43,13 @@ static struct gpiomux_setting spi_suspended_config = {
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
+#if (!defined(CONFIG_MACH_MSM8X60_PRESTO))
 static struct gpiomux_setting spi_suspended_cs_config = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
 
 /* This I2C active configuration applies to GSBI3 and GSBI4 */
 static struct gpiomux_setting i2c_active = {
@@ -55,6 +57,14 @@ static struct gpiomux_setting i2c_active = {
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+
+#if 1//pz1946
+static struct gpiomux_setting i2c_active_gsbi3 = {
+    .func = GPIOMUX_FUNC_1,
+    .drv = GPIOMUX_DRV_8MA,
+    .pull = GPIOMUX_PULL_NONE,
+};
+#endif /* pz1946 */
 
 static struct gpiomux_setting i2c_active_gsbi7 = {
 	.func = GPIOMUX_FUNC_1,
@@ -196,7 +206,12 @@ static struct gpiomux_setting sdcc2_clk_actv_cfg = {
 static struct gpiomux_setting sdcc2_suspend_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
+//20110813 choiseulkee chg,CASE #00579055 for sdio_al_wake_up WARNING & sdio write fail issue
+#ifdef CONFIG_PANTECH
+    .pull = GPIOMUX_PULL_UP,
+#else /* CONFIG_PANTECH */
 	.pull = GPIOMUX_PULL_UP,
+#endif /* CONFIG_PANTECH */
 };
 
 static struct gpiomux_setting sdcc5_dat_0_3_cmd_actv_cfg = {
@@ -214,7 +229,12 @@ static struct gpiomux_setting sdcc5_clk_actv_cfg = {
 static struct gpiomux_setting sdcc5_suspend_config = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
+//20110813 choiseulkee chg,CASE #00579055 for sdio_al_wake_up WARNING & sdio write fail issue
+#ifdef CONFIG_PANTECH
+    .pull = GPIOMUX_PULL_UP,
+#else /* CONFIG_PANTECH */
 	.pull = GPIOMUX_PULL_UP,
+#endif /* CONFIG_PANTECH */
 };
 
 static struct gpiomux_setting aux_pcm_active_config = {
@@ -482,6 +502,27 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 		},
 	},
 #endif /* CONFIG_PANTECH_PRESTO_SENSORS_YAS530 */
+
+#if (defined(CONFIG_MACH_MSM8X60_PRESTO)) //GSBI1 
+    {
+        .gpio      = 34,
+        .settings = {
+            [GPIOMUX_SUSPENDED] = &gsbi1,
+        },
+    },
+    {
+        .gpio      = 35,
+        .settings = {
+            [GPIOMUX_SUSPENDED] = &gsbi1,
+        },
+    },
+    {
+        .gpio      = 36,
+        .settings = {
+            [GPIOMUX_SUSPENDED] = &gsbi1,
+        },
+    },
+#else /* CONFIG_MACH_MSM8X60_PRESTO */
 	{
 		.gpio      = 34,
 		.settings = {
@@ -503,20 +544,25 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &spi_active,
 		},
 	},
+#endif /* CONFIG_MACH_MSM8X60_PRESTO */
+#if 1 //pz1946	
 	{
 		.gpio      = 43,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi3,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
 	{
 		.gpio      = 44,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi3,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
+#endif /* pz1946 */
 	{
 		.gpio      = 47,
 		.settings = {
@@ -531,20 +577,24 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 			[GPIOMUX_ACTIVE]    = &i2c_active,
 		},
 	},
+#if 1//pz1946
 	{
 		.gpio      = 59,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi7,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
 		},
 	},
 	{
 		.gpio      = 60,
 		.settings = {
-			[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
-			[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
+			[GPIOMUX_SUSPENDED] = &i2c_active_gsbi7,
+			//[GPIOMUX_SUSPENDED] = &i2c_suspended_config,
+			//[GPIOMUX_ACTIVE]    = &i2c_active_gsbi7,
 		},
 	},
+#endif /* pz1946 */
 	{
 		.gpio      = 64,
 		.settings = {
@@ -1731,7 +1781,11 @@ static struct msm_gpiomux_config msm8x60_charm_configs[] __initdata = {
 	},
 	/* MDM2AP_WAKEUP */
 	{
+#if defined(CONFIG_PANTECH_PRESTO_BOARD)
+        .gpio = 45,
+#else /* CONFIG_PANTECH_PRESTO_BOARD */
 		.gpio = 40,
+#endif /* CONFIG_PANTECH_PRESTO_BOARD */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ap2mdm_cfg,
 		}

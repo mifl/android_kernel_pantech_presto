@@ -27,6 +27,9 @@ config PANTECH_QUANTINA_BOARD
 config SKY_GSBI12_UART_CONSOLE
 	bool "SKY_GSBI12_UART_CONSOLE Configuration"
 
+config PANTECH_MTP
+	bool "PANTECH_MTP Configuration"
+
 config SKY_SND_CTRL
 	bool
 
