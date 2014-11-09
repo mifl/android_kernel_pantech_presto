@@ -40,6 +40,9 @@
 #include "msm_watchdog.h"
 #include "devices.h"
 #include "clock.h"
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+#include <mach/system.h>
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 #define CHARM_MODEM_TIMEOUT	6000
 #define CHARM_HOLD_TIME		4000
@@ -229,7 +232,11 @@ struct miscdevice charm_modem_misc = {
 static void charm_status_fn(struct work_struct *work)
 {
 	pr_info("Reseting the charm because status changed\n");
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+    arch_reset(0, 0);
+#else /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 	subsystem_restart("external_modem");
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 }
 
 static DECLARE_WORK(charm_status_work, charm_status_fn);

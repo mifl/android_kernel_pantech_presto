@@ -643,6 +643,17 @@ void emergency_remount(void)
 	}
 }
 
+#ifdef CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET
+void emergency_remount_synchronous(void)
+{
+    struct work_struct *work;
+
+    work = kmalloc(sizeof(*work), GFP_ATOMIC);
+    if (work)
+        do_emergency_remount(work);
+}
+#endif /* CONFIG_PANTECH_EXT4_RO_REMOUNT_ON_EMERGENCY_RESET */
+
 /*
  * Unnamed block devices are dummy devices used by virtual
  * filesystems which don't use real block-devices.  -- jrs

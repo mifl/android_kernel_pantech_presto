@@ -34,6 +34,20 @@
 
 #include "smd_private.h"
 
+#ifdef CONFIG_PANTECH_PWR_ONOFF_REASON_CNT
+#include "sky_sys_reset.h"
+#endif /* CONFIG_PANTECH_PWR_ONOFF_REASON_CNT */
+
+#if defined(SUBSYS_RESTART_DEBUG)
+#define dprintk(msg...) printk(msg)
+#else /* SUBSYS_RESTART_DEBUG */
+#define dprintk(msg...)
+#endif /* SUBSYS_RESTART_DEBUG */
+
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+extern void pantech_errlog_display_put_log(const char *log, int size);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
+
 struct subsys_soc_restart_order {
 	const char * const *subsystem_list;
 	int count;
@@ -117,15 +131,24 @@ EXPORT_SYMBOL(get_restart_level);
 static void restart_level_changed(void)
 {
 	struct subsys_data *subsys;
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+    pr_err("%s restart_level: %d\n",__func__, restart_level);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 	if (cpu_is_msm8x60() && restart_level == RESET_SUBSYS_COUPLED) {
 		restart_orders = orders_8x60_all;
 		n_restart_orders = ARRAY_SIZE(orders_8x60_all);
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+        pr_err("%s orders_8x60_all RESET_SUBSYS_COUPLED\n",__func__);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 	}
 
 	if (cpu_is_msm8x60() && restart_level == RESET_SUBSYS_MIXED) {
 		restart_orders = orders_8x60_modems;
 		n_restart_orders = ARRAY_SIZE(orders_8x60_modems);
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+        pr_err("%s orders_8x60_modems RESET_SUBSYS_MIXED \n",__func__);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 	}
 
 	mutex_lock(&subsystem_list_lock);
@@ -439,14 +462,22 @@ int subsystem_restart(const char *subsys_name)
 	struct subsys_data *subsys;
 	struct task_struct *tsk;
 	struct restart_thread_data *data = NULL;
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+    char dispbuf[512];
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 	if (!subsys_name) {
 		pr_err("Invalid subsystem name.\n");
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+    pr_info("Subsystem Restart: Restart sequence requested for  %s, restart_level %d\n",
+        subsys_name, restart_level);
+#else /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 	pr_info("Restart sequence requested for %s, restart_level = %d.\n",
 		subsys_name, restart_level);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 	/* List of subsystems is protected by a lock. New subsystems can
 	 * still come in.
@@ -497,6 +528,24 @@ int subsystem_restart(const char *subsys_name)
 		break;
 
 	case RESET_SOC:
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING  
+        if (!strncmp(subsys_name, "modem", 5)) {
+#ifdef CONFIG_PANTECH_PWR_ONOFF_REASON_CNT
+            sky_reset_reason=SYS_RESET_REASON_EXCEPTION;
+#endif
+            strcpy(dispbuf,"\n\n     [APQ MODEM ERROR]\n\n");
+        }
+        else if (!strncmp(subsys_name, "external_modem", 14)) {
+#ifdef CONFIG_PANTECH_PWR_ONOFF_REASON_CNT
+            sky_reset_reason=SYS_RESET_REASON_MDM_EXCEPTION;
+#endif /* CONFIG_PANTECH_PWR_ONOFF_REASON_CNT */
+            strcpy(dispbuf,"\n\n     [MDM ERROR]\n\n");
+        }
+        strcat(dispbuf,"\n\n     Rebooting cause of Crash\n\n");
+        strcat(dispbuf,"\n\n     Press Power key for reboot\n\n");
+        strcat(dispbuf,"\n\n     Wait a minute for saving logs until rebooting \n\n");  
+        pantech_errlog_display_put_log(dispbuf, strlen(dispbuf));
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 		panic("subsys-restart: Resetting the SoC - %s crashed.",
 			subsys->name);
 		break;

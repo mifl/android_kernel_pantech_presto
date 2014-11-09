@@ -52,6 +52,9 @@
 #include "qdss.h"
 #include "pm-boot.h"
 #include <mach/event_timer.h>
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+#include "sky_sys_reset.h"
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 /******************************************************************************
  * Debug Definitions
@@ -1221,6 +1224,9 @@ static int __init msm_pm_init(void)
 	struct proc_dir_entry *d_entry;
 #endif
 	int ret;
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+    struct proc_dir_entry *reset_info;
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 	/* Page table for cores to come back up safely. */
 	pc_pgd = pgd_alloc(&init_mm);
@@ -1258,6 +1264,18 @@ static int __init msm_pm_init(void)
 	clean_caches((unsigned long)&msm_pm_pc_pgd, sizeof(msm_pm_pc_pgd),
 		     virt_to_phys(&msm_pm_pc_pgd));
 
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+    sky_sys_rst_set_prev_reset_info();
+    reset_info = create_proc_entry("pantech_resetinfo" , \
+                       S_IRUSR | S_IWUSR | \
+                       S_IRGRP | S_IWGRP, NULL);
+
+    if (reset_info) {
+        reset_info->read_proc = sky_sys_rst_read_proc_reset_info;
+        reset_info->write_proc = sky_sys_rst_write_proc_reset_info;
+        reset_info->data = NULL;
+    }
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 	ret = request_irq(rpm_cpu0_wakeup_irq,
 			msm_pm_rpm_wakeup_interrupt, IRQF_TRIGGER_RISING,
 			"pm_drv", msm_pm_rpm_wakeup_interrupt);

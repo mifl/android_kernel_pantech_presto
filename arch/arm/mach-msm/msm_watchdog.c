@@ -48,6 +48,10 @@ static unsigned long delay_time;
 static unsigned long bark_time;
 static unsigned long long last_pet;
 
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+static int stack_dump_disable = 0;
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
+
 /*
  * On the kernel command line specify
  * msm_watchdog.enable=1 to enable the watchdog
@@ -74,7 +78,11 @@ module_param_call(runtime_disable, wdog_enable_set, param_get_int,
  * On the kernel command line specify msm_watchdog.appsbark=1 to handle
  * watchdog barks in Linux. By default barks are processed by the secure side.
  */
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+static int appsbark = 1;  /* KKLIM 20110711, 0 -> 1*/
+#else /* QCOM Original */
 static int appsbark;
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 module_param(appsbark, int, 0);
 
 /*
@@ -262,9 +270,21 @@ static irqreturn_t wdog_bark_handler(int irq, void *dev_id)
 		msm_watchdog_resume(NULL);
 	}
 
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+    stack_dump_disable = 1;
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
+
 	panic("Apps watchdog bark received!");
 	return IRQ_HANDLED;
 }
+
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+int pantech_kernel_stack_dump_disable(void)
+{
+    return stack_dump_disable;
+}
+EXPORT_SYMBOL(pantech_kernel_stack_dump_disable);
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
 
 #define SCM_SET_REGSAVE_CMD 0x2
 

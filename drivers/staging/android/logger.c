@@ -718,6 +718,58 @@ static struct logger_log *get_log_from_minor(int minor)
 	return NULL;
 }
 
+#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
+
+struct logger_log *cur_log;
+
+#define LOGCAT_BUF_MASK (cur_log->size-1)
+#define LOGCAT_BUF(idx) (cur_log->buffer[(idx) & LOGCAT_BUF_MASK])
+
+static int logcat_buf_get_len(void)
+{
+    return cur_log->w_off;
+}
+
+void logcat_set_log(int index)
+{
+    switch(index){
+        case 1:
+            cur_log = &log_main;
+            break;
+        case 2:
+            cur_log = &log_events;
+            break;
+        case 3:
+            cur_log = &log_radio;
+            break;
+        case 4:
+            cur_log = &log_system;
+            break;
+        default:
+            cur_log = &log_system;
+            break;
+    }
+}
+
+ int logcat_buf_copy(char *dest,int idx,int len)
+{
+    int ret, max;
+    max = logcat_buf_get_len();
+    if (idx < 0 || idx >= max) {
+            ret = -1;
+    } else {
+        if (len > max - idx)
+            len = max - idx;
+        ret = len;
+        idx += (cur_log->w_off - max);
+        while (len-- > 0)
+            dest[len] = LOGCAT_BUF(idx + len);
+    }
+
+    return ret;
+}
+#endif /* CONFIG_PANTECH_ERR_CRASH_LOGGING */
+
 static int __init init_log(struct logger_log *log)
 {
 	int ret;
