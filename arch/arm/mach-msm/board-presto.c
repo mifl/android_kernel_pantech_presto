@@ -1562,7 +1562,7 @@ static struct platform_device msm_vpe_device = {
 
 #ifdef CONFIG_MSM_CAMERA
 #ifndef CONFIG_MSM_CAMERA_V4L2
-#ifdef CONFIG_MSM_CAMERA_FLASH
+//#ifdef CONFIG_MSM_CAMERA_FLASH
 #define VFE_CAMIF_TIMER1_GPIO 29
 #define VFE_CAMIF_TIMER2_GPIO 30
 #define VFE_CAMIF_TIMER3_GPIO_INT 31
@@ -1585,13 +1585,17 @@ static struct msm_camera_sensor_strobe_flash_data strobe_flash_xenon = {
 	.irq = MSM_GPIO_TO_INT(VFE_CAMIF_TIMER3_GPIO_INT),
 };
 #endif
-#endif
+//#endif
 
 int msm_cam_gpio_tbl[] = {
 	32,/*CAMIF_MCLK*/
 	47,/*CAMIF_I2C_DATA*/
 	48,/*CAMIF_I2C_CLK*/
+#ifndef CONFIG_PANTECH_CAMERA_HW
+    /* You have to configure common gpios here, and should configure other
+     * gpios in sensor drivers. */
 	105,/*STANDBY*/
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 };
 
 enum msm_cam_stat{
@@ -1599,9 +1603,55 @@ enum msm_cam_stat{
 	MSM_CAM_ON,
 };
 
+/* PANTECH_CAMERA_TODO */
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) && defined(CONFIG_PANTECH_CAMERA)
+static uint32_t cam_gpio_config_data[] =
+{
+    GPIO_CFG(31, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"FLASH ENABLE" },
+    GPIO_CFG(62, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"FLASH MODE" },
+#ifdef CONFIG_PANTECH_CAMERA_MT9P111
+    GPIO_CFG(86, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"5M STANDBY" },
+#endif
+    GPIO_CFG(106, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"5M RESET" },
+    GPIO_CFG(137, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"VGA RESET" },
+    GPIO_CFG(139, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"VGA STANDBY" },
+};
+
+/*
+ * 2011.11.03. WSH, PRESTO Standby time 개선을 위하여 추가적으로 GPIO Configuration 최적화 시키기 위해 
+ * Camera 사용안할시 FLASH MODE, 5M_CAM_RSET_N pin을 Pull Down모드로 변경함.
+ */
+static uint32_t cam_gpio_config_data_off[] =
+{
+    GPIO_CFG(31, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"FLASH ENABLE" },
+    GPIO_CFG(62, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), //"FLASH MODE" },
+#ifdef CONFIG_PANTECH_CAMERA_MT9P111
+    GPIO_CFG(86, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"5M STANDBY" },
+#endif
+    GPIO_CFG(106, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), //"5M RESET" },
+    GPIO_CFG(137, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"VGA RESET" },
+    GPIO_CFG(139, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), //"VGA STANDBY" },
+};
+#endif /* CONFIG_MACH_MSM8X60_PRESTO && CONFIG_PANTECH_CAMERA */
+
 static int config_gpio_table(enum msm_cam_stat stat)
 {
 	int rc = 0, i = 0;
+
+/* PANTECH_CAMERA_TODO */
+#if defined(CONFIG_MACH_MSM8X60_PRESTO) && defined(CONFIG_PANTECH_CAMERA)
+    if(stat == MSM_CAM_ON)
+    {
+        for (i = 0; i< ARRAY_SIZE(cam_gpio_config_data); ++i)
+            gpio_tlmm_config(cam_gpio_config_data[i], 0);
+    }
+    else
+    {
+        for (i = 0; i< ARRAY_SIZE(cam_gpio_config_data_off); ++i)
+            gpio_tlmm_config(cam_gpio_config_data_off[i], 0);
+    }
+#endif /* CONFIG_MACH_MSM8X60_PRESTO && CONFIG_PANTECH_CAMERA */
+
 	if (stat == MSM_CAM_ON) {
 		for (i = 0; i < ARRAY_SIZE(msm_cam_gpio_tbl); i++) {
 			rc = gpio_request(msm_cam_gpio_tbl[i], "CAM_GPIO");
@@ -1619,9 +1669,11 @@ static int config_gpio_table(enum msm_cam_stat stat)
 	return rc;
 }
 
+#ifdef CONFIG_IMX074		// add for CONFIG_PANTECH_CAMERA
 static struct msm_camera_sensor_platform_info sensor_board_info = {
 	.mount_angle = 0
 };
+#endif /* CONFIG_IMX074 */
 
 /*external regulator VREG_5V*/
 static struct regulator *reg_flash_5V;
@@ -1700,6 +1752,45 @@ static void config_camera_off_gpios_fluid(void)
 	gpio_set_value_cansleep(GPIO_EXT_CAMIF_PWR_EN, 0);
 	gpio_free(GPIO_EXT_CAMIF_PWR_EN);
 }
+
+#ifdef CONFIG_PANTECH_CAMERA_HW
+static int config_camera_on_gpios_main_cam(void)
+{
+    int rc = 0;
+
+    rc = config_gpio_table(MSM_CAM_ON);
+    if (rc < 0) {
+        printk(KERN_ERR "%s: CAMSENSOR gpio table request"
+                "failed\n", __func__);
+        return rc;
+    }
+    return rc;
+}
+
+static void config_camera_off_gpios_main_cam(void)
+{
+    config_gpio_table(MSM_CAM_OFF);
+}
+
+static int config_camera_on_gpios_sub_cam(void)
+{
+    int rc = 0;
+
+    rc = config_gpio_table(MSM_CAM_ON);
+    if (rc < 0) {
+        printk(KERN_ERR "%s: CAMSENSOR gpio table request"
+                "failed\n", __func__);
+        return rc;
+    }
+    return rc;
+}
+
+static void config_camera_off_gpios_sub_cam(void)
+{
+    config_gpio_table(MSM_CAM_OFF);
+}
+#endif /* CONFIG_PANTECH_CAMERA_HW */
+
 static int config_camera_on_gpios(void)
 {
 	int rc = 0;
@@ -1729,7 +1820,11 @@ static int config_camera_on_gpios(void)
 
 #ifdef CONFIG_MSM_CAMERA_FLASH
 #ifdef CONFIG_IMX074
-	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa())
+	if (machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa()
+#ifdef CONFIG_MACH_MSM8X60_PRESTO
+			|| machine_is_msm8x60_presto()
+#endif
+	)
 		strobe_flash_xenon.flash_charge = FUSION_VFE_CAMIF_TIMER1_GPIO;
 #endif
 #endif
@@ -2183,6 +2278,34 @@ static struct msm_bus_scale_pdata cam_bus_client_pdata = {
 };
 #endif
 
+#ifdef CONFIG_PANTECH_CAMERA_HW
+struct msm_camera_device_platform_data msm_camera_device_data_main_cam = {
+    .camera_gpio_on  = config_camera_on_gpios_main_cam,
+    .camera_gpio_off = config_camera_off_gpios_main_cam,
+    .ioext.csiphy = 0x04800000,
+    .ioext.csisz  = 0x00000400,
+    .ioext.csiirq = CSI_0_IRQ,
+    .ioclk.mclk_clk_rate = 24000000,
+    .ioclk.vfe_clk_rate  = 228570000,
+#ifdef CONFIG_MSM_BUS_SCALING
+    .cam_bus_scale_table = &cam_bus_client_pdata,
+#endif
+};
+
+struct msm_camera_device_platform_data msm_camera_device_data_sub_cam = {
+    .camera_gpio_on  = config_camera_on_gpios_sub_cam,
+    .camera_gpio_off = config_camera_off_gpios_sub_cam,
+    .ioext.csiphy = 0x04900000,
+    .ioext.csisz  = 0x00000400,
+    .ioext.csiirq = CSI_1_IRQ,
+    .ioclk.mclk_clk_rate = 24000000,
+    .ioclk.vfe_clk_rate  = 228570000,
+#ifdef CONFIG_MSM_BUS_SCALING
+    .cam_bus_scale_table = &cam_bus_client_pdata,
+#endif
+};
+#endif /* CONFIG_PANTECH_CAMERA_HW */
+
 struct msm_camera_device_platform_data msm_camera_device_data = {
 	.camera_gpio_on  = config_camera_on_gpios,
 	.camera_gpio_off = config_camera_off_gpios,
@@ -2423,6 +2546,46 @@ struct platform_device msm_camera_sensor_qs_s5k4e1 = {
 	},
 };
 #endif
+#ifdef CONFIG_PANTECH_CAMERA_S5K4ECGX
+static struct msm_camera_sensor_flash_data flash_s5k4ecgx = {
+    .flash_type	= MSM_CAMERA_FLASH_LED,
+    .flash_src	= &msm_flash_src
+};
+static struct msm_camera_sensor_info msm_camera_sensor_s5k4ecgx_data = {
+    .sensor_name	= "s5k4ecgx",
+    .pdata		= &msm_camera_device_data_main_cam,
+    .resource	= msm_camera_resources,
+    .num_resources	= ARRAY_SIZE(msm_camera_resources),
+    .flash_data	= &flash_s5k4ecgx,
+    .csi_if		= 1
+};
+struct platform_device msm_camera_sensor_s5k4ecgx = {
+    .name	= "msm_camera_s5k4ecgx",
+    .dev	= {
+        .platform_data = &msm_camera_sensor_s5k4ecgx_data,
+    },
+};
+#endif /* CONFIG_PANTECH_CAMERA_S5K4ECGX */
+#ifdef CONFIG_PANTECH_CAMERA_MT9V113
+static struct msm_camera_sensor_flash_data flash_mt9v113 = {
+    .flash_type	= MSM_CAMERA_FLASH_NONE,
+    .flash_src	= &msm_flash_src
+};
+static struct msm_camera_sensor_info msm_camera_sensor_mt9v113_data = {
+    .sensor_name	= "mt9v113",
+    .pdata		= &msm_camera_device_data_sub_cam,
+    .resource	= msm_camera_resources,
+    .num_resources	= ARRAY_SIZE(msm_camera_resources),
+    .flash_data	= &flash_mt9v113,
+    .csi_if		= 1
+};
+struct platform_device msm_camera_sensor_mt9v113 = {
+    .name	= "msm_camera_mt9v113",
+    .dev	= {
+        .platform_data = &msm_camera_sensor_mt9v113_data,
+    },
+};
+#endif /* CONFIG_PANTECH_CAMERA_MT9V113 */
 static struct i2c_board_info msm_camera_boardinfo[] __initdata = {
 	#ifdef CONFIG_MT9E013
 	{
@@ -2449,6 +2612,16 @@ static struct i2c_board_info msm_camera_boardinfo[] __initdata = {
 		I2C_BOARD_INFO("qs_s5k4e1", 0x20),
 	},
 	#endif
+    #ifdef CONFIG_PANTECH_CAMERA_S5K4ECGX
+    {
+        I2C_BOARD_INFO("s5k4ecgx", 0x5A >> 1),
+    },
+    #endif /* CONFIG_PANTECH_CAMERA_S5K4ECGX */
+    #ifdef CONFIG_PANTECH_CAMERA_MT9V113
+    {
+        I2C_BOARD_INFO("mt9v113", 0x78 >> 1),
+    },
+    #endif /* CONFIG_PANTECH_CAMERA_MT9V113 */
 };
 
 static struct i2c_board_info msm_camera_dragon_boardinfo[] __initdata = {
@@ -2462,6 +2635,16 @@ static struct i2c_board_info msm_camera_dragon_boardinfo[] __initdata = {
 		I2C_BOARD_INFO("vx6953", 0x20),
 	},
 	#endif
+    #ifdef CONFIG_PANTECH_CAMERA_S5K4ECGX
+    {
+        I2C_BOARD_INFO("s5k4ecgx", 0x5A >> 1),
+    },
+    #endif /* CONFIG_PANTECH_CAMERA_S5K4ECGX */
+    #ifdef CONFIG_PANTECH_CAMERA_MT9V113
+    {
+        I2C_BOARD_INFO("mt9v113", 0x78 >> 1),
+    },
+    #endif /* CONFIG_PANTECH_CAMERA_MT9V113 */
 };
 #endif
 #endif
@@ -5247,6 +5430,12 @@ static struct platform_device *surf_devices[] __initdata = {
 #ifdef CONFIG_VX6953
 	&msm_camera_sensor_vx6953,
 #endif
+#ifdef CONFIG_PANTECH_CAMERA_S5K4ECGX
+    &msm_camera_sensor_s5k4ecgx,
+#endif /* CONFIG_PANTECH_CAMERA_S5K4ECGX */
+#ifdef CONFIG_PANTECH_CAMERA_MT9V113
+    &msm_camera_sensor_mt9v113,
+#endif /* CONFIG_PANTECH_CAMERA_MT9V113 */
 #endif
 #endif
 #ifdef CONFIG_MSM_GEMINI
@@ -10417,7 +10606,7 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 		pm8058_platform_data.keypad_pdata = &dragon_keypad_data;
 	else
 		pm8058_platform_data.keypad_pdata = &ffa_keypad_data;
-#ifndef CONFIG_MSM_CAMERA_V4L2
+#ifdef CONFIG_WEBCAM_OV9726 /* pz1946 debug */
 	/* Specify reset pin for OV9726 */
 	if (machine_is_msm8x60_dragon()) {
 		msm_camera_sensor_ov9726_data.sensor_reset = 62;

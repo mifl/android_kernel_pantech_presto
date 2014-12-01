@@ -352,11 +352,13 @@ static struct gpiomux_setting pmic_suspended_cfg = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 
+#ifndef CONFIG_PANTECH_CAMERA_HW
 static struct gpiomux_setting cam_active_1_cfg = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 
 static struct gpiomux_setting cam_active_2_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -370,11 +372,13 @@ static struct gpiomux_setting cam_active_3_cfg = {
 	.pull = GPIOMUX_PULL_UP,
 };
 
+#ifndef CONFIG_PANTECH_CAMERA_HW
 static struct gpiomux_setting cam_active_4_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 
 static struct gpiomux_setting cam_active_5_cfg = {
 	.func = GPIOMUX_FUNC_1,
@@ -1491,6 +1495,75 @@ static struct msm_gpiomux_config msm8x60_common_configs[] __initdata = {
 };
 
 static struct msm_gpiomux_config msm8x60_cam_configs[] __initdata = {
+#ifdef CONFIG_PANTECH_CAMERA_HW
+    {	// CAMIO_MCLK
+        .gpio = 32,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_5_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    {	// CAMIO_I2C_SDA
+        .gpio = 47,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_3_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    {	// CAMIO_I2C_SCL
+        .gpio = 48,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_3_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    #if defined(CONFIG_MACH_MSM8X60_PRESTO) && defined(CONFIG_PANTECH_CAMERA_MT9P111)
+    {	// CAMIO_R_STBY(_N)
+        .gpio = 86,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    #endif /* CONFIG_MACH_MSM8X60_PRESTO */
+    {	// CAMIO_R_RST(_N)
+        .gpio = 106,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    {	// CAMIO_F_STBY(_N)
+        .gpio = 139,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    {	// CAMIO_F_RST(_N)
+        .gpio = 137,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    {	// CAMIO_FL_DRV_EN
+        .gpio = 31,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    #ifdef CONFIG_MACH_MSM8X60_PRESTO
+    {	// CAMIO_FL_MODE
+        .gpio = 62,
+        .settings = {
+            [GPIOMUX_ACTIVE]    = &cam_active_2_cfg,
+            [GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
+        },
+    },
+    #endif /* CONFIG_MACH_MSM8X60_PRESTO */
+#else /* CONFIG_PANTECH_CAMERA_HW */
 	{
 		.gpio = 29,
 		.settings = {
@@ -1554,6 +1627,7 @@ static struct msm_gpiomux_config msm8x60_cam_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &cam_suspend_cfg,
 		},
 	},
+#endif /* CONFIG_PANTECH_CAMERA_HW */
 };
 
 static struct msm_gpiomux_config msm8x60_charm_configs[] __initdata = {
